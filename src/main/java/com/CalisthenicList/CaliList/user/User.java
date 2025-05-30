@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.User;
+package com.CalisthenicList.CaliList.user;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -22,7 +22,7 @@ public class User {
     private ObjectId id;
 
     @Size(min = 1, max = 30, message = "The name must be between 1 and 30 characters long.")
-    @NotEmpty(message = "The name must not be empty.")
+    @NotNull(message = "The name must not be null.")
     private String name;
 
     @Email(message = "Invalid email address.")

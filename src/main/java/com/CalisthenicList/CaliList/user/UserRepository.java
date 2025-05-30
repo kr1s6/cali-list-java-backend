@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.User;
+package com.CalisthenicList.CaliList.user;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;

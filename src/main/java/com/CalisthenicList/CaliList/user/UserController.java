@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.User;
+package com.CalisthenicList.CaliList.user;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/user")
-public class UserController extends ExceptionResolver {
+public class UserController {
 
     private final UserRepository userRepository;
 

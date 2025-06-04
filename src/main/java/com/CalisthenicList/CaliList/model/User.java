@@ -1,5 +1,6 @@
-package com.CalisthenicList.CaliList.user;
+package com.CalisthenicList.CaliList.model;
 
+import com.CalisthenicList.CaliList.enums.Roles;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

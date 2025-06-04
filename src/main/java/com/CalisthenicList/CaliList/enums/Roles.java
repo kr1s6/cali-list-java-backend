@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.user;
+package com.CalisthenicList.CaliList.enums;
 
 public enum Roles {
     ROLE_USER, ROLE_ADMIN

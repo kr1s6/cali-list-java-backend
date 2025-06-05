@@ -48,5 +48,3 @@ public class User {
     private Roles role = Roles.ROLE_USER;
     private String gender;
 }
-
-//PBKDF2

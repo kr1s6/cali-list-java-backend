@@ -7,10 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -19,9 +16,9 @@ import java.util.logging.Logger;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
+    private static final Logger logger = Logger.getLogger(UserController.class.getName());
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder encoder;
-    private static final Logger logger = Logger.getLogger(UserController.class.getName());
 
     public UserController(UserRepository userRepository, BCryptPasswordEncoder encoder) {
         this.userRepository = userRepository;
@@ -36,8 +33,10 @@ public class UserController {
         }
         user.setPassword(encoder.encode(user.getPassword()));
         userRepository.save(user);
+//      TODO check if this endpoint need to return user object or you get it differently
         return new ResponseEntity<>("User registered successfully.", HttpStatus.CREATED);
     }
+//    TODO after registration should be page with inserting your name
 
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
@@ -55,5 +54,19 @@ public class UserController {
         }
         logger.info("User logged in successfully: " + userLoginRequest.getEmail());
         return new ResponseEntity<>("Login successful", HttpStatus.OK);
+    }
+    //    TODO add "three strikes and you are out" policy for entering wrong credentials
+
+    //   TODO  need to be secured for admin, tests and for user to delete himself
+    @DeleteMapping("/delete/{email}")
+    public ResponseEntity<String> deleteUser(@PathVariable String email) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            logger.warning("Attempt to delete non-existing user: " + email);
+            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+        }
+        User userToDelete = userOptional.get();
+        userRepository.delete(userToDelete);
+        return new ResponseEntity<>("User " + email + " deleted successfully", HttpStatus.OK);
     }
 }

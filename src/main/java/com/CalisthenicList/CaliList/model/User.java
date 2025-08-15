@@ -23,8 +23,8 @@ public class User {
     private ObjectId id;
 
     @Size(min = 1, max = 30, message = "The name must be between 1 and 30 characters long.")
-    @NotNull(message = "The name must not be null.")
-    private String name;
+    @NotBlank(message = "The name must not be blank.")
+    private String name = "CalisthenicsAthlete";
 
     @Email(message = "Invalid email address.")
     @NotEmpty(message = "The email address must not be empty.")

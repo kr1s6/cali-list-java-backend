@@ -22,20 +22,20 @@ public class User {
     @Id
     private ObjectId id;
 
-    @Size(min = 1, max = 30, message = "The name must be between 1 and 30 characters long.")
+    @Size(min = 1, max = 20, message = "The name must be between 1 and 30 characters long.")
     @NotBlank(message = "The name must not be blank.")
-    private String name = "CalisthenicsAthlete";
+    private String username;
 
     @Email(message = "Invalid email address.")
     @NotEmpty(message = "The email address must not be empty.")
     private String email;
 
     @Size(min = 8, message = "The password must be at least 8 characters long.")
-    @Pattern(regexp = ".*\\d.*", message = "The password must contain at least one number.")
-    @Pattern(regexp = ".*[a-z].*", message = "The password must contain at least one lowercase letter.")
-    @Pattern(regexp = ".*[A-Z].*", message = "The password must contain at least one uppercase letter.")
     @NotEmpty(message = "The password must not be empty.")
     private String password;
+
+    @NotEmpty(message = "The password must not be empty.")
+    private String confirmPassword;
 
     @Past(message = "The date of birth must be in the past.")
     private Date birthDate = null;
@@ -48,3 +48,4 @@ public class User {
     private Roles role = Roles.ROLE_USER;
     private String gender;
 }
+

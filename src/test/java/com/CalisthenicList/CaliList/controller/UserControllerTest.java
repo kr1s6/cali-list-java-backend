@@ -70,7 +70,9 @@ class UserControllerTest {
 //    TODO ogarnij co zrobić gdy user wpisze długi hasło bo system tego nie ogarnia
     void givenLongPassword_WhenSendingPostRequest_ThenUserIsCreated() {
         // Given
-        String veryLongPassword = "A1a".repeat(67); // 201 chars
+        String veryLongPassword = "A1a".repeat(40); // 201 chars
+        int ile = veryLongPassword.length();
+        int bytes = veryLongPassword.getBytes().length;
         String email = "siemanoKolano@intera.pl";
         user.setEmail(email);
         user.setPassword(veryLongPassword);
@@ -83,6 +85,9 @@ class UserControllerTest {
         Assertions.assertTrue(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email not found in DB");
         testRestTemplate.delete(deleteUserUrl + email);
     }
+
+//    TODO The best way to store a password would be to run a heavy kdf like Scrypt on the client side to convert the password
+//     into a fixed-sized hash before it's sent to the server anyway, then just hash the fixed-sized hash one more time on the server.
 
 
     @Test

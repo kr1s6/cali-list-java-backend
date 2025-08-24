@@ -24,7 +24,7 @@ public class UserController {
     public ResponseEntity<List<String>> register(@Valid @RequestBody User user) {
         return userControllerService.registrationService(user);
 //        TODO
-//         - Include a password strength meter (zxcvbn-ts library)
+//         - Include a password strength meter (zxcvbn-ts library) (Frontend)
 //         - Block common and previously breached passwords by pwned password
 //         - check if this endpoint need to return user object or you get it differently
 //         - Implement Secure Password Recovery Mechanism
@@ -34,7 +34,7 @@ public class UserController {
     public ResponseEntity<List<String>> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
         return userControllerService.loginService(userLoginRequest);
 //        TODO
-//         - User can user email or login as a username
+//         - User can use email or username as a [username]
 //         - "three strikes and you are out" policy is the pain for legitimate user
     }
 

@@ -2,15 +2,13 @@ package com.CalisthenicList.CaliList.configurations;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 @Configuration
 public class SecurityConfig {
 
     @Bean
-//    INFO  [OWASP] use a work factor of 10 or more and with a password limit of 72 bytes.
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
-//        TODO change on Argon2id
+    public Argon2PasswordEncoder passwordEncoder() {
+        return new Argon2PasswordEncoder(16, 32, 1, 12288, 3);
     }
 }

@@ -5,7 +5,7 @@ import com.CalisthenicList.CaliList.model.UserLoginRequest;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,9 +17,9 @@ import java.util.logging.Logger;
 public class UserControllerService {
     private static final Logger logger = Logger.getLogger(UserControllerService.class.getName());
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder encoder;
+    private final Argon2PasswordEncoder encoder;
 
-    public UserControllerService(UserRepository userRepository, BCryptPasswordEncoder encoder) {
+    public UserControllerService(UserRepository userRepository, Argon2PasswordEncoder encoder) {
         this.userRepository = userRepository;
         this.encoder = encoder;
     }

@@ -20,11 +20,12 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    //INFO registration request require Unique username, Unique email, password and confirmation of password
+    //INFO registration request require Unique username, Unique email, password
     public ResponseEntity<List<String>> register(@Valid @RequestBody User user) {
         return userControllerService.registrationService(user);
 //        TODO
 //         - Include a password strength meter (zxcvbn-ts library) (Frontend)
+//         - Include confirm password tile only on frontend side for user-friendly authentication (Frontend)
 //         - Block common and previously breached passwords by pwned password
 //         - check if this endpoint need to return user object or you get it differently
 //         - Implement Secure Password Recovery Mechanism

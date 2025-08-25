@@ -14,7 +14,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest {
@@ -23,17 +23,23 @@ class UserControllerTest {
     @Autowired
     private TestRestTemplate testRestTemplate;
     @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private Argon2PasswordEncoder passwordEncoder;
     @LocalServerPort
     private int port;
     private String postRegisterUrl;
     private String deleteUserUrl;
     private User user;
     private HttpHeaders headers;
+    private String validUsername;
+    private String validEmail;
+    private String validPassword;
 
     @BeforeEach
     void setUp() {
         user = new User();
+        validUsername = "CalisthenicsAthlete";
+        validEmail = "siemanoKolano@intera.pl";
+        validPassword = "SiemaKolano123";
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         postRegisterUrl = "http://localhost:" + port + "/api/user/register";
@@ -43,38 +49,33 @@ class UserControllerTest {
     @Test
     void givenValidValues_WhenSendingPostRequest_ThenSuccessfullyCreatedUserInDB() {
 //        Given
-        String password = "SiemaKolano123";
-        String email = "siemanoKolano@intera.pl";
-        String username = "CalisthenicsAthlete";
-        user.setEmail(email);
-        user.setPassword(password);
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
+        user.setPassword(validPassword);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
 //        When
         ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
 //        Then
         Assertions.assertTrue(response.getStatusCode().is2xxSuccessful(),
                 "Warning! Registration failed. Code: " + response.getStatusCode());
-        Assertions.assertTrue(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email not found in DB");
-        User createdUser = userRepository.findByEmail(user.getEmail()).get();
+        Assertions.assertTrue(userRepository.findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
+        Assertions.assertTrue(userRepository.findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+        User createdUser = userRepository.findByEmail(validEmail).get();
         Assertions.assertNotNull(createdUser.getCreatedDate(), "Warning! Created Date is null");
         Assertions.assertNotNull(createdUser.getUpdatedDate(), "Warning! Updated Date is null");
         Assertions.assertEquals(Roles.ROLE_USER, createdUser.getRole(), "Warning! User has wrong role.");
-        Assertions.assertEquals(username, createdUser.getName(), "Warning! Unexpected username");
-        Assertions.assertTrue(passwordEncoder.matches(password, createdUser.getPassword()),
+        Assertions.assertTrue(passwordEncoder.matches(validPassword, createdUser.getPassword()),
                 "Warning! Password isn't properly encrypted");
-
-        testRestTemplate.delete(deleteUserUrl + email);
+        // Cleanup
+        testRestTemplate.delete(deleteUserUrl + validEmail);
     }
 
     @Test
-//    TODO ogarnij co zrobić gdy user wpisze długi hasło bo system tego nie ogarnia
     void givenLongPassword_WhenSendingPostRequest_ThenUserIsCreated() {
         // Given
-        String veryLongPassword = "A1a".repeat(40); // 201 chars
-        int ile = veryLongPassword.length();
-        int bytes = veryLongPassword.getBytes().length;
-        String email = "siemanoKolano@intera.pl";
-        user.setEmail(email);
+        String veryLongPassword = "A1a".repeat(50); // 150 chars
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
         user.setPassword(veryLongPassword);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
         // When
@@ -82,18 +83,19 @@ class UserControllerTest {
         // Then
         Assertions.assertTrue(response.getStatusCode().is2xxSuccessful(),
                 "Warning! Registration failed. Code: " + response.getStatusCode());
-        Assertions.assertTrue(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email not found in DB");
-        testRestTemplate.delete(deleteUserUrl + email);
+        Assertions.assertTrue(userRepository.findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+        User createdUser = userRepository.findByEmail(validEmail).get();
+        Assertions.assertTrue(passwordEncoder.matches(veryLongPassword, createdUser.getPassword()),
+                "Warning! Password isn't properly encrypted");
+        // Cleanup
+        testRestTemplate.delete(deleteUserUrl + validEmail);
     }
-
-//    TODO The best way to store a password would be to run a heavy kdf like Scrypt on the client side to convert the password
-//     into a fixed-sized hash before it's sent to the server anyway, then just hash the fixed-sized hash one more time on the server.
-
 
     @Test
     void givenNullPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
 //        Given
-        user.setEmail("siemanoKolano@intera.pl");
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
         user.setPassword(null);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
 //        When
@@ -102,12 +104,14 @@ class UserControllerTest {
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
                 "Warning! Registration passed with null password. Code: " + response.getStatusCode());
         Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+        Assertions.assertTrue(response.getBody().contains("The password must not be empty."), "Warning! Wrong error message");
     }
 
     @Test
     void givenEmptyPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
 //        Given
-        user.setEmail("siemanoKolano@intera.pl");
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
         user.setPassword("");
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
 //        When
@@ -116,13 +120,16 @@ class UserControllerTest {
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
                 "Warning! Registration passed with empty password. Code: " + response.getStatusCode());
         Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+        Assertions.assertTrue(response.getBody().contains("The password must not be empty."), "Warning! Wrong error message");
     }
 
     @Test
     void givenBlankPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
 //        Given
-        user.setEmail("siemanoKolano@intera.pl");
-        user.setPassword("        ");
+        String invalidPassword = "          ";
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
+        user.setPassword(invalidPassword);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
 //        When
         ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
@@ -130,13 +137,15 @@ class UserControllerTest {
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
                 "Warning! Registration passed with blank password. Code: " + response.getStatusCode());
         Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+        Assertions.assertTrue(response.getBody().contains("The password must not be empty."), "Warning! Wrong error message");
     }
 
     @Test
     void givenTooShortPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
 //        Given
-        user.setEmail("siemanoKolano@intera.pl");
-        user.setPassword("Wrong11");
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
+        user.setPassword("Invalid");
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
 //        When
         ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
@@ -144,49 +153,131 @@ class UserControllerTest {
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
                 "Warning! Registration passed with too short password. Code: " + response.getStatusCode());
         Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+        Assertions.assertTrue(response.getBody().contains("The password must be at least 8 characters long."), "Warning! Wrong error message");
     }
 
     @Test
-    void givenPasswordWithoutUppercase_WhenSendingPostRequest_ThenUserIsNotCreated() {
+    void givenEmptyEmail_WhenSendingPostRequest_ThenUserIsNotCreated() {
         // Given
-        user.setEmail("siemanoKolano@intera.pl");
-        user.setPassword("password123");
+        user.setUsername(validUsername);
+        user.setEmail("");
+        user.setPassword(validPassword);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
         // When
         ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
         // Then
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
-                "Warning! Registration passed without uppercase letter. Code: " + response.getStatusCode());
-        Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+                "Warning! Registration passed with empty email. Code: " + response.getStatusCode());
+        Assertions.assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
+        Assertions.assertTrue(response.getBody().contains("The email address must not be empty."), "Warning! Wrong error message");
     }
 
     @Test
-    void givenPasswordWithoutLowercase_WhenSendingPostRequest_ThenUserIsNotCreated() {
+    void givenInvalidEmailFormat_WhenSendingPostRequest_ThenUserIsNotCreated() {
         // Given
-        user.setEmail("siemanoKolano@intera.pl");
-        user.setPassword("PASSWORD123");
+        user.setUsername(validUsername);
+        user.setEmail("invalid-email-format"); // no @
+        user.setPassword(validPassword);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
         // When
         ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
         // Then
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
-                "Warning! Registration passed without lowercase letter. Code: " + response.getStatusCode());
-        Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+                "Warning! Registration passed with invalid email. Code: " + response.getStatusCode());
+        Assertions.assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
+        Assertions.assertTrue(response.getBody().contains("Invalid email address."), "Warning! Wrong error message");
     }
 
     @Test
-    void givenPasswordWithoutNumber_WhenSendingPostRequest_ThenUserIsNotCreated() {
+    void givenExistingEmail_WhenSendingPostRequest_ThenUserIsNotCreated() {
         // Given
-        user.setEmail("siemanoKolano@intera.pl");
-        user.setPassword("Password");
+        User validUser = new User();
+        validUser.setUsername("DifferentUsername");
+        validUser.setEmail(validEmail);
+        validUser.setPassword(validPassword);
+        userRepository.save(validUser);
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
+        user.setPassword(validPassword);
         HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
         // When
         ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
         // Then
         Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
-                "Warning! Registration passed without number. Code: " + response.getStatusCode());
-        Assertions.assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+                "Warning! Registration passed with duplicate email. Code: " + response.getStatusCode());
+        Assertions.assertTrue(response.getBody().contains("User with this email already exists"), "Warning! Wrong error message");
+        // Cleanup
+        userRepository.delete(validUser);
     }
 
+    @Test
+    void givenEmptyUsername_WhenSendingPostRequest_ThenUserIsNotCreated() {
+        // Given
+        user.setUsername("");
+        user.setEmail(validEmail);
+        user.setPassword(validPassword);
+        HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
+        // When
+        ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+        // Then
+        Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
+                "Warning! Registration passed with empty username. Code: " + response.getStatusCode());
+        Assertions.assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
+        Assertions.assertTrue(response.getBody().contains("The username must not be blank."), "Warning! Wrong error message");
+    }
 
+    @Test
+    void givenBlankUsername_WhenSendingPostRequest_ThenUserIsNotCreated() {
+        // Given
+        user.setUsername("    ");
+        user.setEmail(validEmail);
+        user.setPassword(validPassword);
+        HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
+        // When
+        ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+        // Then
+        Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
+                "Warning! Registration passed with blank username. Code: " + response.getStatusCode());
+        Assertions.assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
+        Assertions.assertTrue(response.getBody().contains("The username must not be blank."), "Warning! Wrong error message");
+    }
+
+    @Test
+    void givenTooLongUsername_WhenSendingPostRequest_ThenUserIsNotCreated() {
+        // Given
+        String longUsername = "A".repeat(21); // 21 chars
+        user.setUsername(longUsername);
+        user.setEmail(validEmail);
+        user.setPassword(validPassword);
+        HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
+        // When
+        ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+        // Then
+        Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
+                "Warning! Registration passed with too long username. Code: " + response.getStatusCode());
+        Assertions.assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
+        Assertions.assertTrue(response.getBody().contains("The username must be between 1 and 30 characters long."), "Warning! Wrong error message");
+    }
+
+    @Test
+    void givenExistingUsername_WhenSendingPostRequest_ThenUserIsNotCreated() {
+        // Given
+        User validUser = new User();
+        validUser.setUsername(validUsername);
+        validUser.setEmail("different@user.com");
+        validUser.setPassword(validPassword);
+        userRepository.save(validUser);
+        user.setUsername(validUsername);
+        user.setEmail(validEmail);
+        user.setPassword(validPassword);
+        HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
+        // When
+        ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+        // Then
+        Assertions.assertTrue(response.getStatusCode().is4xxClientError(),
+                "Warning! Registration passed with duplicate username. Code: " + response.getStatusCode());
+        Assertions.assertTrue(response.getBody().contains("User with this username already exists"), "Warning! Wrong error message");
+        // Cleanup
+        userRepository.delete(validUser);
+    }
 }

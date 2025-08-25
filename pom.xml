@@ -53,6 +53,13 @@
         </dependency>
 
         <dependency>
+            <!--Supplementation for spring security to use Argon2-->
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.81</version>
+        </dependency>
+
+        <dependency>
             <!--Does auto-configuration, catching, auto reload-->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -66,7 +73,7 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <!--Offers field-level validators tags used for model/DTO data. Validation happens in controller with tag @Valid-->
+            <!--Offers field-level validators tags used for model/DTO data. Validation happens in a controller with the tag @Valid-->
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>

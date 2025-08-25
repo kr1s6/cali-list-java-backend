@@ -28,10 +28,8 @@ public class UserControllerService {
         String username = user.getUsername();
         String email = user.getEmail();
         String notHashedPassword = user.getPassword();
-        String confirmPassword = user.getConfirmPassword();
         boolean emailAlreadyExists = userRepository.findByEmail(email).isPresent();
         boolean usernameAlreadyExists = userRepository.findByUsername(username).isPresent();
-        boolean invalidConfirmationPassword = !notHashedPassword.equals(confirmPassword);
         List<String> responseBody = new ArrayList<>();
 
         if (emailAlreadyExists) {
@@ -42,11 +40,7 @@ public class UserControllerService {
             responseBody.add("User with this username already exists");
             logger.warning("Attempted registration with existing username: " + username);
         }
-        if (invalidConfirmationPassword) {
-            responseBody.add("Passwords do not match");
-            logger.warning("Attempted registration with invalid confirmation password: " + confirmPassword);
-        }
-        if (emailAlreadyExists || usernameAlreadyExists || invalidConfirmationPassword) {
+        if (emailAlreadyExists || usernameAlreadyExists) {
             return new ResponseEntity<>(responseBody, HttpStatus.CONFLICT);
         }
 
@@ -63,9 +57,9 @@ public class UserControllerService {
 
     public ResponseEntity<List<String>> loginService(UserLoginRequest userLoginRequest) {
         List<String> responseBody = new ArrayList<>();
-        Optional<User> userOptional = userRepository.findByEmail(userLoginRequest.getEmail());
+        Optional<User> userOptional = userRepository.findByEmail(userLoginRequest.getUsername());
         if (userOptional.isEmpty()) {
-            logger.warning("Login attempt with non-existing email: " + userLoginRequest.getEmail());
+            logger.warning("Login attempt with non-existing email: " + userLoginRequest.getUsername());
             responseBody.add("Invalid email or password");
             return new ResponseEntity<>(responseBody, HttpStatus.UNAUTHORIZED);
         }
@@ -73,11 +67,11 @@ public class UserControllerService {
         User user = userOptional.get();
         boolean matches = encoder.matches(userLoginRequest.getPassword(), user.getPassword());
         if (!matches) {
-            logger.warning("Invalid password attempt for email: " + userLoginRequest.getEmail());
+            logger.warning("Invalid password attempt for email: " + userLoginRequest.getUsername());
             responseBody.add("Invalid email or password");
             return new ResponseEntity<>(responseBody, HttpStatus.UNAUTHORIZED);
         }
-        logger.info("User logged in successfully: " + userLoginRequest.getEmail());
+        logger.info("User logged in successfully: " + userLoginRequest.getUsername());
         responseBody.add("Login successful");
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }

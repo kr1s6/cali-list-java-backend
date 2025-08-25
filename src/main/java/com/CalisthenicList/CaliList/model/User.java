@@ -22,8 +22,8 @@ public class User {
     @Id
     private ObjectId id;
 
-    @Size(min = 1, max = 20, message = "The name must be between 1 and 30 characters long.")
-    @NotBlank(message = "The name must not be blank.")
+    @Size(min = 1, max = 20, message = "The username must be between 1 and 30 characters long.")
+    @NotBlank(message = "The username must not be blank.")
     private String username;
 
     @Email(message = "Invalid email address.")
@@ -31,11 +31,8 @@ public class User {
     private String email;
 
     @Size(min = 8, message = "The password must be at least 8 characters long.")
-    @NotEmpty(message = "The password must not be empty.")
+    @NotBlank(message = "The password must not be empty.")
     private String password;
-
-    @NotEmpty(message = "The password must not be empty.")
-    private String confirmPassword;
 
     @Past(message = "The date of birth must be in the past.")
     private Date birthDate = null;

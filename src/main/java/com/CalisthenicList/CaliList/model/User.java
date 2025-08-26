@@ -1,7 +1,10 @@
 package com.CalisthenicList.CaliList.model;
 
 import com.CalisthenicList.CaliList.enums.Roles;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,11 +30,11 @@ public class User {
     private String username;
 
     @Email(message = "Invalid email address.")
-    @NotEmpty(message = "The email address must not be empty.")
+    @NotBlank(message = "The email address must not be blank.")
     private String email;
 
     @Size(min = 8, message = "The password must be at least 8 characters long.")
-    @NotBlank(message = "The password must not be empty.")
+    @NotBlank(message = "The password must not be blank.")
     private String password;
 
     @Past(message = "The date of birth must be in the past.")

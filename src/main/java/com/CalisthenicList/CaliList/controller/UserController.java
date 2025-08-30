@@ -26,9 +26,9 @@ public class UserController {
 //        TODO
 //         - Include a password strength meter (zxcvbn-ts library) (Frontend)
 //         - Include confirm password tile only on frontend side for user-friendly authentication (Frontend)
-//         - Block common and previously breached passwords by pwned password
 //         - check if this endpoint need to return user object or you get it differently
 //         - Implement Secure Password Recovery Mechanism
+//         - Implement validation for emails
     }
 
     @PostMapping("/login")
@@ -36,7 +36,9 @@ public class UserController {
         return userControllerService.loginService(userLoginRequest);
 //        TODO
 //         - User can use email or username as a [username]
+//         - Compare Password Hashes Using Safe Functions
 //         - "three strikes and you are out" policy is the pain for legitimate user
+//         - user get new token every login attempt
     }
 
 

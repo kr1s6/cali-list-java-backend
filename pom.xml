@@ -41,45 +41,75 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         <dependency>
-            <!--Starter for building web, RESTful, Spring MVC. Uses Tomcat as the default embedded container-->
+            <!--INFO Starter for building web, RESTful, Spring MVC. Uses Tomcat as the default embedded container-->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
-            <!--Provides encryption, key generation, password encoding-->
+            <!--INFO Provides encryption, key generation, password encoding-->
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
         <dependency>
-            <!--Supplementation for spring security to use Argon2-->
+            <!--INFO Supplementation for spring security to use Argon2-->
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
             <version>1.81</version>
         </dependency>
 
         <dependency>
-            <!--Does auto-configuration, catching, auto reload-->
+            <groupId>dnsjava</groupId>
+            <artifactId>dnsjava</artifactId>
+            <version>3.6.3</version>
+        </dependency>
+
+        <!--INFO jjwt Provides JWTS class and is divided on -api, -impl and -jackson-->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+
+
+        <dependency>
+            <!--INFO For mail creation-->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <dependency>
+            <!--INFO Does auto-configuration, catching, auto reload-->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <!--Provides tags which auto-generated code-->
+            <!--INFO Provides tags which auto-generated code-->
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <!--Offers field-level validators tags used for model/DTO data. Validation happens in a controller with the tag @Valid-->
+            <!--INFO Offers field-level validators tags used for model/DTO data. Validation happens in a controller with the tag @Valid-->
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
 
         <dependency>
-            <!-- Provides JUnit dependencies -->
+            <!-- INFO Provides JUnit dependencies -->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

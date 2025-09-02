@@ -80,15 +80,15 @@ public class UserControllerService {
 		return new ResponseEntity<>(responseBody, HttpStatus.OK);
 	}
 
-	public ResponseEntity<String> deleteUserService(String email) {
-		Optional<User> userOptional = userRepository.findByEmail(email);
+	public ResponseEntity<String> deleteUserService(Long id) {
+		Optional<User> userOptional = userRepository.findById(id);
 		if(userOptional.isEmpty()) {
 			logger.warning("Attempt to delete non-existing user.");
 			return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
 		}
 		User userToDelete = userOptional.get();
 		userRepository.delete(userToDelete);
-		return new ResponseEntity<>("User " + email + " deleted successfully", HttpStatus.OK);
+		return new ResponseEntity<>("User: " + id + " - deleted successfully", HttpStatus.OK);
 	}
 }
 

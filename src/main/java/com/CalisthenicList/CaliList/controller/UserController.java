@@ -13,41 +13,41 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-    private final UserControllerService userControllerService;
+	private final UserControllerService userControllerService;
 
-    public UserController(UserControllerService userControllerService) {
-        this.userControllerService = userControllerService;
-    }
+	public UserController(UserControllerService userControllerService) {
+		this.userControllerService = userControllerService;
+	}
 
-    @PostMapping("/register")
-    //INFO registration request require Unique username, Unique email, password
-    public ResponseEntity<List<String>> register(@Valid @RequestBody User user) {
-        return userControllerService.registrationService(user);
+	@PostMapping("/register")
+	//INFO registration request require Unique username, Unique email, password
+	public ResponseEntity<List<String>> register(@Valid @RequestBody User user) {
+		return userControllerService.registrationService(user);
 //        TODO
 //         - Include a password strength meter (zxcvbn-ts library) (Frontend)
 //         - Include confirm password tile only on frontend side for user-friendly authentication (Frontend)
 //         - check if this endpoint need to return user object or you get it differently
 //         - Implement Secure Password Recovery Mechanism
 //         - Implement validation for emails
-    }
+	}
 
-    @PostMapping("/login")
-    public ResponseEntity<List<String>> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
-        return userControllerService.loginService(userLoginRequest);
+	@PostMapping("/login")
+	public ResponseEntity<List<String>> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
+		return userControllerService.loginService(userLoginRequest);
 //        TODO
 //         - User can use email or username as a [username]
 //         - Compare Password Hashes Using Safe Functions
 //         - "three strikes and you are out" policy is the pain for legitimate user
 //         - user get new token every login attempt
-    }
+	}
 
 
-    @DeleteMapping("/delete/{email}")
-    public ResponseEntity<String> deleteUser(@PathVariable String email) {
-        return userControllerService.deleteUserService(email);
+	@DeleteMapping("/delete/{id}")
+	public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+		return userControllerService.deleteUserService(id);
 //      TODO
 //       - need to be secured for admin, tests and for user to delete himself
-    }
+	}
 }
 
 

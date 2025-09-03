@@ -2,13 +2,12 @@ package com.CalisthenicList.CaliList.constants;
 
 public class Messages {
 	// Username
-	public static final String USERNAME_LENGTH_ERROR = "The username must be between 1 and 30 characters long.";
+	public static final String USERNAME_LENGTH_ERROR = "The username must be between 1 and 20 characters long.";
 	public static final String USERNAME_NOT_BLANK_ERROR = "The username must not be blank.";
 	public static final String USERNAME_ALREADY_EXISTS_ERROR = "User with this username already exists";
 
 	// Email
 	public static final String EMAIL_INVALID_ERROR = "Invalid email address.";
-	public static final String EMAIL_NOT_BLANK_ERROR = "The email address must not be blank.";
 	public static final String EMAIL_ALREADY_EXISTS_ERROR = "User with this email already exists";
 
 	// Password

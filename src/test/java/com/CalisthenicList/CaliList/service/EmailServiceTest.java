@@ -1,7 +1,6 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.model.User;
-import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +17,9 @@ class EmailServiceTest {
 	private EmailService emailService;
 
 	@BeforeAll
-	static void init() {
+	static void setUp() {
 		user = new User();
-		user.setId(new ObjectId());
+		user.setId(1L);
 	}
 
 	@Test

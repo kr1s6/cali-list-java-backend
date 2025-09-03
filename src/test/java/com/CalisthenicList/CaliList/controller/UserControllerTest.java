@@ -16,12 +16,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 //INFO SpringBootTest is heavy weight and should be used only for integration tests when whole Spring context is needed
 class UserControllerTest {
@@ -33,7 +31,8 @@ class UserControllerTest {
 	@Autowired
 	private TestRestTemplate testRestTemplate;
 	@Autowired
-	private Argon2PasswordEncoder passwordEncoder;
+	private PasswordEncoder passwordEncoder;
+	private User user;
 
 	@BeforeAll
 	static void init() {
@@ -44,25 +43,25 @@ class UserControllerTest {
 	@Nested
 	@DisplayName("User registration tests")
 	class UserControllerTestRegister {
-		private static User user;
-		private static String validUsername;
-		private static String validEmail;
-		private static String validPassword;
+		private final String validUsername = "TestUser";
+		private final String validEmail = "test@intera.pl";
+		private final String validPassword = "qWBRę LGć8MPł  pass";
 		private String postRegisterUrl;
-		private String deleteUserUrl;
-
-		@BeforeAll
-		static void init() {
-			user = new User();
-			validUsername = "CalisthenicsAthlete";
-			validEmail = "krzysztof.bielkiewicz@intera.pl";
-			validPassword = "qWBRę LGć8MPł  pass";
-		}
 
 		@BeforeEach
 		void initAll() {
 			postRegisterUrl = "http://localhost:" + port + "/api/user/register";
-			deleteUserUrl = "http://localhost:" + port + "/api/user/delete/";
+			user = new User();
+		}
+
+		@AfterEach
+		void cleanUp() {
+			if(userRepository.findByEmail(validEmail).isPresent()) {
+				userRepository.delete(userRepository.findByEmail(validEmail).get());
+			}
+			if(userRepository.findByUsername(validUsername).isPresent()) {
+				userRepository.delete(userRepository.findByUsername(validUsername).get());
+			}
 		}
 
 		@Test
@@ -86,18 +85,16 @@ class UserControllerTest {
 			assertEquals(Roles.ROLE_USER, createdUser.getRole(), "Warning! User has wrong role.");
 			assertTrue(passwordEncoder.matches(validPassword, createdUser.getPassword()),
 					"Warning! Password isn't properly encrypted");
-			// Cleanup
-			testRestTemplate.delete(deleteUserUrl + validEmail);
 		}
 
 		@Nested
 		@DisplayName("Email tests")
 		class EmailTests {
-			@DisplayName("❌ Negative Case: Blank email")
+			@DisplayName("❌ Negative Case: Invalid email")
 			@ParameterizedTest(name = "Invalid email case: \"{0}\"")
 			@NullAndEmptySource
-			@ValueSource(strings = {"        "})
-			void givenBlankEmail_WhenSendingPostRequest_ThenUserIsNotCreated(String invalidEmail) {
+			@ValueSource(strings = {"        ", "invalid-email-format"})
+			void givenInvalidEmail_WhenSendingPostRequest_ThenUserIsNotCreated(String invalidEmail) {
 				// Given
 				user.setUsername(validUsername);
 				user.setEmail(invalidEmail);
@@ -107,26 +104,10 @@ class UserControllerTest {
 				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
-						"Warning! Registration passed with empty email. Code: " + response.getStatusCode());
-				assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
-				assertTrue(response.getBody().contains(Messages.EMAIL_NOT_BLANK_ERROR), "Warning! Wrong error message");
-			}
-
-			@Test
-			@DisplayName("❌ Negative Case: Invalid format email")
-			void givenInvalidEmailFormat_WhenSendingPostRequest_ThenUserIsNotCreated() {
-				// Given
-				user.setUsername(validUsername);
-				user.setEmail("invalid-email-format"); // no @
-				user.setPassword(validPassword);
-				HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
-				// When
-				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
-				// Then
-				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with invalid email. Code: " + response.getStatusCode());
-				assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.EMAIL_INVALID_ERROR), "Warning! Wrong error message");
+				assertFalse(userRepository.findByEmail(invalidEmail).isPresent(), "Warning! Email should not exist in DB");
 			}
 
 			@DisplayName("❌ Negative Case: Invalid email domain")
@@ -143,8 +124,9 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with invalid email. Code: " + response.getStatusCode());
-				assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.EMAIL_INVALID_ERROR), "Warning! Wrong error message");
+				assertFalse(userRepository.findByEmail(invalidEmail).isPresent(), "Warning! User should not exist in DB");
 			}
 
 			@Test
@@ -165,9 +147,9 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with duplicate email. Code: " + response.getStatusCode());
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.EMAIL_ALREADY_EXISTS_ERROR), "Warning! Wrong error message");
-				// Cleanup
-				userRepository.delete(validUser);
+				assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
 			}
 		}
 
@@ -188,7 +170,8 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with too long username. Code: " + response.getStatusCode());
-				assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
+				assertFalse(userRepository.findByUsername(longUsername).isPresent(), "Warning! User should not exist in DB");
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.USERNAME_LENGTH_ERROR), "Warning! Wrong error message");
 			}
 
@@ -207,7 +190,8 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with invalid username. Code: " + response.getStatusCode());
-				assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
+				assertFalse(userRepository.findByUsername(invalidUsername).isPresent(), "Warning! User should not exist in DB");
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.USERNAME_NOT_BLANK_ERROR), "Warning! Wrong error message");
 			}
 
@@ -229,9 +213,9 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with duplicate username. Code: " + response.getStatusCode());
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.USERNAME_ALREADY_EXISTS_ERROR), "Warning! Wrong error message");
-				// Cleanup
-				userRepository.delete(validUser);
+				assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
 			}
 		}
 
@@ -243,18 +227,19 @@ class UserControllerTest {
 			@NullAndEmptySource
 			@ValueSource(strings = {"        "})
 			void givenBlankPassword_WhenSendingPostRequest_ThenUserIsNotCreated(String invalidPassword) {
-//        Given
+				//Given
 				user.setUsername(validUsername);
 				user.setEmail(validEmail);
 				user.setPassword(invalidPassword);
 				HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
-//        When
+				//When
 				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
-//        Then
+				//Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with invalid password. Code: " + response.getStatusCode());
-				assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.PASSWORD_NOT_BLANK_ERROR), "Warning! Wrong error message");
+				assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
 			}
 
 			@Test
@@ -275,27 +260,25 @@ class UserControllerTest {
 				User createdUser = userRepository.findByEmail(validEmail).get();
 				assertTrue(passwordEncoder.matches(veryLongPassword, createdUser.getPassword()),
 						"Warning! Password isn't properly encrypted");
-				// Cleanup
-				testRestTemplate.delete(deleteUserUrl + validEmail);
 			}
 
 			@Test
 			@DisplayName("❌ Negative Case: Too short password")
 			void givenTooShortPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
-//        Given
+				// Given
 				user.setUsername(validUsername);
 				user.setEmail(validEmail);
 				user.setPassword("Invalid");
 				HttpEntity<User> registrationRequest = new HttpEntity<>(user, headers);
-//        When
+				// When
 				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
-//        Then
+				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with too short password. Code: " + response.getStatusCode());
 				assertFalse(userRepository.findByEmail(user.getEmail()).isPresent(), "Warning! Email found in DB");
+				assertNotNull(response.getBody());
 				assertTrue(response.getBody().contains(Messages.PASSWORD_LENGTH_ERROR), "Warning! Wrong error message");
 			}
-
 		}
 	}
 
@@ -307,5 +290,14 @@ class UserControllerTest {
 	@Nested
 	@DisplayName("Delete user tests")
 	class UserControllerTestDeleteUser {
+		private String deleteUserUrl;
+
+		@BeforeEach
+		void initAll() {
+			deleteUserUrl = "http://localhost:" + port + "/api/user/delete/";
+			user = new User();
+		}
+//		TODO DO zrobienia testy
+//		testRestTemplate.delete(deleteUserUrl + createdUser.getId());
 	}
 }

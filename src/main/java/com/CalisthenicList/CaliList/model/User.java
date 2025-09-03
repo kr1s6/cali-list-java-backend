@@ -36,7 +36,7 @@ public class User {
 	private String username;
 
 	@Email(message = Messages.EMAIL_INVALID_ERROR)
-	@NotBlank(message = Messages.EMAIL_NOT_BLANK_ERROR)
+	@NotBlank(message = Messages.EMAIL_INVALID_ERROR)
 	@Column(nullable = false, unique = true)
 	private String email;
 

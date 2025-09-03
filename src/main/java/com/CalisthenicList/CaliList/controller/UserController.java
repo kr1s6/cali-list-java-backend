@@ -4,6 +4,7 @@ import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserLoginRequest;
 import com.CalisthenicList.CaliList.service.UserControllerService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,16 +13,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class UserController {
 	private final UserControllerService userControllerService;
 
-	public UserController(UserControllerService userControllerService) {
-		this.userControllerService = userControllerService;
-	}
-
 	@PostMapping("/register")
 	//INFO registration request require Unique username, Unique email, password
-	public ResponseEntity<List<String>> register(@Valid @RequestBody User user) {
+	public ResponseEntity<List<String>> registerUser(@Valid @RequestBody User user) {
 		return userControllerService.registrationService(user);
 //        TODO
 //         - Include a password strength meter (zxcvbn-ts library) (Frontend)
@@ -32,7 +30,7 @@ public class UserController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<List<String>> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
+	public ResponseEntity<List<String>> loginUser(@Valid @RequestBody UserLoginRequest userLoginRequest) {
 		return userControllerService.loginService(userLoginRequest);
 //        TODO
 //         - User can use email or username as a [username]
@@ -41,9 +39,8 @@ public class UserController {
 //         - user get new token every login attempt
 	}
 
-
 	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+	public ResponseEntity<String> deleteUserById(@PathVariable Long id) {
 		return userControllerService.deleteUserService(id);
 //      TODO
 //       - need to be secured for admin, tests and for user to delete himself

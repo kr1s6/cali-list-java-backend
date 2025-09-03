@@ -8,7 +8,6 @@ public class Messages {
 
 	// Email
 	public static final String EMAIL_INVALID_ERROR = "Invalid email address.";
-	public static final String EMAIL_NOT_BLANK_ERROR = "The email address must not be blank.";
 	public static final String EMAIL_ALREADY_EXISTS_ERROR = "User with this email already exists";
 
 	// Password

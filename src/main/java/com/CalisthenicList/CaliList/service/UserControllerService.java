@@ -7,7 +7,7 @@ import com.CalisthenicList.CaliList.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,36 +20,20 @@ import java.util.logging.Logger;
 public class UserControllerService {
 	private static final Logger logger = Logger.getLogger(UserControllerService.class.getName());
 	private final UserRepository userRepository;
-	private final Argon2PasswordEncoder encoder;
+	private final PasswordEncoder encoder;
 	private final EmailService emailService;
 
 	public ResponseEntity<List<String>> registrationService(User user) {
 		String username = user.getUsername();
 		String email = user.getEmail();
-		String notHashedPassword = user.getPassword();
-		boolean emailAlreadyExists = userRepository.findByEmail(email).isPresent();
-		boolean usernameAlreadyExists = userRepository.findByUsername(username).isPresent();
-		boolean emailDomainExists = emailService.dnsEmailLookup(user.getEmail());
-		List<String> responseBody = new ArrayList<>();
-
-		if(emailAlreadyExists) {
-			responseBody.add(Messages.EMAIL_ALREADY_EXISTS_ERROR);
-			logger.warning("Attempted registration with existing email.");
-		}
-		if(usernameAlreadyExists) {
-			responseBody.add(Messages.USERNAME_ALREADY_EXISTS_ERROR);
-			logger.warning("Attempted registration with existing username.");
-		}
-		if(!emailDomainExists) {
-			responseBody.add(Messages.EMAIL_INVALID_ERROR);
-			logger.warning("Attempted registration with invalid email domain.");
-		}
-		if(emailAlreadyExists || usernameAlreadyExists || !emailDomainExists) {
+		String rawPassword = user.getPassword();
+		List<String> responseBody = collectRegistrationErrors(username, email);
+		if(!responseBody.isEmpty()) {
 			return new ResponseEntity<>(responseBody, HttpStatus.CONFLICT);
 		}
-
-		user.setPassword(encoder.encode(notHashedPassword));
-		if(user.getPassword().equals(notHashedPassword)) {
+		String encodedPassword = encoder.encode(rawPassword);
+		user.setPassword(encodedPassword);
+		if(encodedPassword.equals(rawPassword)) {
 			responseBody.add(Messages.SERVICE_ERROR);
 			logger.warning("Password encoding failed.");
 			return new ResponseEntity<>(responseBody, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -89,6 +73,26 @@ public class UserControllerService {
 		User userToDelete = userOptional.get();
 		userRepository.delete(userToDelete);
 		return new ResponseEntity<>("User: " + id + " - deleted successfully", HttpStatus.OK);
+	}
+
+	private List<String> collectRegistrationErrors(String username, String email) {
+		List<String> errors = new ArrayList<>();
+		boolean emailAlreadyExists = userRepository.findByEmail(email).isPresent();
+		boolean usernameAlreadyExists = userRepository.findByUsername(username).isPresent();
+		boolean emailDomainExists = emailService.dnsEmailLookup(email);
+		if(emailAlreadyExists) {
+			errors.add(Messages.EMAIL_ALREADY_EXISTS_ERROR);
+			logger.warning("Attempted registration with existing email.");
+		}
+		if(usernameAlreadyExists) {
+			errors.add(Messages.USERNAME_ALREADY_EXISTS_ERROR);
+			logger.warning("Attempted registration with existing username.");
+		}
+		if(!emailDomainExists) {
+			errors.add(Messages.EMAIL_INVALID_ERROR);
+			logger.warning("Attempted registration with invalid email domain.");
+		}
+		return errors;
 	}
 }
 

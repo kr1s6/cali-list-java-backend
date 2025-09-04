@@ -1,6 +1,9 @@
 package com.CalisthenicList.CaliList.constants;
 
-public class Messages {
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public final class Messages {
 	// Username
 	public static final String USERNAME_LENGTH_ERROR = "The username must be between 1 and 20 characters long.";
 	public static final String USERNAME_NOT_BLANK_ERROR = "The username must not be blank.";

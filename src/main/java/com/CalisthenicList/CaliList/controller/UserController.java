@@ -1,7 +1,7 @@
 package com.CalisthenicList.CaliList.controller;
 
-import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserLoginRequest;
+import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.service.UserControllerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/api/user")
@@ -19,9 +18,10 @@ public class UserController {
 
 	@PostMapping("/register")
 	//INFO registration request require Unique username, Unique email, password
-	public ResponseEntity<List<String>> registerUser(@Valid @RequestBody User user) {
-		return userControllerService.registrationService(user);
+	public ResponseEntity<List<String>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto) {
+		return userControllerService.registrationService(userDto);
 //        TODO
+//         - check if you can do user with Amin role by Postman
 //         - Include a password strength meter (zxcvbn-ts library) (Frontend)
 //         - Include confirm password tile only on frontend side for user-friendly authentication (Frontend)
 //         - check if this endpoint need to return user object or you get it differently
@@ -41,7 +41,7 @@ public class UserController {
 
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<String> deleteUserById(@PathVariable Long id) {
-		return userControllerService.deleteUserService(id);
+		return userControllerService.deleteUserById(id);
 //      TODO
 //       - need to be secured for admin, tests and for user to delete himself
 	}

@@ -3,6 +3,7 @@ package com.CalisthenicList.CaliList.service;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserLoginRequest;
+import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,25 +24,58 @@ public class UserControllerService {
 	private final PasswordEncoder encoder;
 	private final EmailService emailService;
 
-	public ResponseEntity<List<String>> registrationService(User user) {
-		String username = user.getUsername();
-		String email = user.getEmail();
-		String rawPassword = user.getPassword();
-		List<String> responseBody = collectRegistrationErrors(username, email);
+	public static User toUser(UserRegistrationDTO userDTO) {
+		return new User(userDTO.getUsername(), userDTO.getEmail(), userDTO.getPassword());
+	}
+
+	public ResponseEntity<List<String>> registrationService(UserRegistrationDTO userDto) {
+		String rawPassword = userDto.getPassword();
+		List<String> responseBody = collectRegistrationErrors(userDto);
 		if(!responseBody.isEmpty()) {
 			return new ResponseEntity<>(responseBody, HttpStatus.CONFLICT);
 		}
 		String encodedPassword = encoder.encode(rawPassword);
-		user.setPassword(encodedPassword);
+		userDto.setPassword(encodedPassword);
 		if(encodedPassword.equals(rawPassword)) {
 			responseBody.add(Messages.SERVICE_ERROR);
 			logger.warning("Password encoding failed.");
 			return new ResponseEntity<>(responseBody, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+		User user = toUser(userDto);
 		userRepository.save(user);
 		responseBody.add(Messages.USER_REGISTERED_SUCCESS);
 		return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
 	}
+
+	private List<String> collectRegistrationErrors(UserRegistrationDTO userDto) {
+		List<String> errors = new ArrayList<>();
+		String username = userDto.getUsername();
+		String email = userDto.getEmail();
+		String rawPassword = userDto.getPassword();
+		String rawRepeatedPassword = userDto.getRepeatedPassword();
+		boolean emailAlreadyExists = userRepository.findByEmail(email).isPresent();
+		boolean usernameAlreadyExists = userRepository.findByUsername(username).isPresent();
+		boolean emailDomainExists = emailService.dnsEmailLookup(email);
+		boolean validRepeatablePassword = rawPassword.equals(rawRepeatedPassword);
+		if(emailAlreadyExists) {
+			errors.add(Messages.EMAIL_ALREADY_EXISTS_ERROR);
+			logger.warning("Attempted registration with existing email.");
+		}
+		if(usernameAlreadyExists) {
+			errors.add(Messages.USERNAME_ALREADY_EXISTS_ERROR);
+			logger.warning("Attempted registration with existing username.");
+		}
+		if(!emailDomainExists) {
+			errors.add(Messages.EMAIL_INVALID_ERROR);
+			logger.warning("Attempted registration with invalid email domain.");
+		}
+		if(!validRepeatablePassword) {
+			errors.add(Messages.SERVICE_ERROR);
+			logger.warning("Wrong password confirmation.");
+		}
+		return errors;
+	}
+
 
 	public ResponseEntity<List<String>> loginService(UserLoginRequest userLoginRequest) {
 		List<String> responseBody = new ArrayList<>();
@@ -64,35 +98,15 @@ public class UserControllerService {
 		return new ResponseEntity<>(responseBody, HttpStatus.OK);
 	}
 
-	public ResponseEntity<String> deleteUserService(Long id) {
+	public ResponseEntity<String> deleteUserById(Long id) {
 		Optional<User> userOptional = userRepository.findById(id);
 		if(userOptional.isEmpty()) {
 			logger.warning("Attempt to delete non-existing user.");
-			return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+			return new ResponseEntity<>(Messages.SERVICE_ERROR, HttpStatus.NOT_FOUND);
 		}
 		User userToDelete = userOptional.get();
 		userRepository.delete(userToDelete);
 		return new ResponseEntity<>("User: " + id + " - deleted successfully", HttpStatus.OK);
-	}
-
-	private List<String> collectRegistrationErrors(String username, String email) {
-		List<String> errors = new ArrayList<>();
-		boolean emailAlreadyExists = userRepository.findByEmail(email).isPresent();
-		boolean usernameAlreadyExists = userRepository.findByUsername(username).isPresent();
-		boolean emailDomainExists = emailService.dnsEmailLookup(email);
-		if(emailAlreadyExists) {
-			errors.add(Messages.EMAIL_ALREADY_EXISTS_ERROR);
-			logger.warning("Attempted registration with existing email.");
-		}
-		if(usernameAlreadyExists) {
-			errors.add(Messages.USERNAME_ALREADY_EXISTS_ERROR);
-			logger.warning("Attempted registration with existing username.");
-		}
-		if(!emailDomainExists) {
-			errors.add(Messages.EMAIL_INVALID_ERROR);
-			logger.warning("Attempted registration with invalid email domain.");
-		}
-		return errors;
 	}
 }
 

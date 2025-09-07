@@ -104,7 +104,7 @@ public class UserControllerService {
 		}
 		User userToDelete = userOptional.get();
 		userRepository.delete(userToDelete);
-		return new ResponseEntity<>("User: " + id + " - deleted successfully", HttpStatus.OK);
+		return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
 	}
 }
 

@@ -1,11 +1,12 @@
 package com.CalisthenicList.CaliList.controller;
 
+import com.CalisthenicList.CaliList.configurations.SecurityConfig;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.enums.Roles;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
-import com.CalisthenicList.CaliList.service.UserControllerService;
+import com.CalisthenicList.CaliList.utils.Mapper;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -41,6 +42,7 @@ class UserControllerTest {
 	static void init() {
 		headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
+		SecurityConfig.TOKEN_CAPACITY = 100;
 	}
 
 	@Nested
@@ -54,7 +56,6 @@ class UserControllerTest {
 
 		@BeforeEach
 		void initAll() {
-			//        Given
 			postRegisterUrl = "http://localhost:" + port + "/api/user/register";
 			userRegistrationDTO = new UserRegistrationDTO(validUsername, validEmail, validPassword, validPassword);
 		}
@@ -105,7 +106,7 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(), "Warning! Registration passed with invalid email.");
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.EMAIL_INVALID_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.EMAIL_INVALID_ERROR), "Warning! Wrong error message: " + response.getBody());
 				assertFalse(userRepository.findByEmail(invalidEmail).isPresent(), "Warning! Email should not exist in DB");
 			}
 
@@ -121,7 +122,7 @@ class UserControllerTest {
 				// Then
 				assertTrue(response.getStatusCode().is4xxClientError(), "Warning! Registration passed with invalid email.");
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.EMAIL_INVALID_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.EMAIL_INVALID_ERROR), "Warning! Wrong error message: " + response.getBody());
 				assertFalse(userRepository.findByEmail(invalidEmail).isPresent(), "Warning! User should not exist in DB");
 			}
 
@@ -131,7 +132,7 @@ class UserControllerTest {
 				// Given
 				String notRepeatableUsername = "DifferentUsername";
 				UserRegistrationDTO userDTO = new UserRegistrationDTO(notRepeatableUsername, validEmail, validPassword, validPassword);
-				User testUser = UserControllerService.toUser(userDTO);
+				User testUser = Mapper.newUser(userDTO);
 				userRepository.save(testUser);
 				HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 				// When
@@ -140,7 +141,7 @@ class UserControllerTest {
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with duplicate email. Code: " + response.getStatusCode());
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.EMAIL_ALREADY_EXISTS_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.EMAIL_ALREADY_EXISTS_ERROR), "Warning! Wrong error message: " + response.getBody());
 				assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! User should not exist in DB");
 			}
 		}
@@ -163,7 +164,7 @@ class UserControllerTest {
 						"Warning! Registration passed with too long username. Code: " + response.getStatusCode());
 				assertFalse(userRepository.findByUsername(longUsername).isPresent(), "Warning! User should not exist in DB");
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.USERNAME_LENGTH_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.USERNAME_LENGTH_ERROR), "Warning! Wrong error message: " + response.getBody());
 			}
 
 			@DisplayName("❌ Negative Case: Blank username")
@@ -181,7 +182,7 @@ class UserControllerTest {
 						"Warning! Registration passed with invalid username. Code: " + response.getStatusCode());
 				assertFalse(userRepository.findByUsername(invalidUsername).isPresent(), "Warning! User should not exist in DB");
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.USERNAME_NOT_BLANK_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.USERNAME_NOT_BLANK_ERROR), "Warning! Wrong error message: " + response.getBody());
 			}
 
 			@Test
@@ -190,7 +191,7 @@ class UserControllerTest {
 				// Given
 				String notRepeatableEmail = "different@user.com";
 				UserRegistrationDTO validUserDto = new UserRegistrationDTO(validUsername, notRepeatableEmail, validPassword, validPassword);
-				User user = UserControllerService.toUser(validUserDto);
+				User user = Mapper.newUser(validUserDto);
 				userRepository.save(user);
 				HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 				// When
@@ -199,7 +200,7 @@ class UserControllerTest {
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with duplicate username. Code: " + response.getStatusCode());
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.USERNAME_ALREADY_EXISTS_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.USERNAME_ALREADY_EXISTS_ERROR), "Warning! Wrong error message: " + response.getBody());
 				assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! User should not exist in DB");
 			}
 		}
@@ -214,7 +215,7 @@ class UserControllerTest {
 				// Given
 				String veryLongPassword = "A1a".repeat(50); // 150 chars
 				userRegistrationDTO.setPassword(veryLongPassword);
-				userRegistrationDTO.setRepeatedPassword(veryLongPassword);
+				userRegistrationDTO.setConfirmPassword(veryLongPassword);
 				HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 				// When
 				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
@@ -226,7 +227,7 @@ class UserControllerTest {
 				assertTrue(passwordEncoder.matches(veryLongPassword, createdUser.getPassword()),
 						"Warning! Password isn't properly encrypted");
 			}
-			
+
 			@DisplayName("❌ Negative Case: Blank password")
 			@ParameterizedTest(name = "Invalid password case: \"{0}\"")
 			@NullAndEmptySource
@@ -234,7 +235,7 @@ class UserControllerTest {
 			void givenBlankPassword_WhenSendingPostRequest_ThenUserIsNotCreated(String invalidPassword) {
 				//Given
 				userRegistrationDTO.setPassword(invalidPassword);
-				userRegistrationDTO.setRepeatedPassword(invalidPassword);
+				userRegistrationDTO.setConfirmPassword(invalidPassword);
 				HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 				//When
 				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
@@ -242,7 +243,7 @@ class UserControllerTest {
 				assertTrue(response.getStatusCode().is4xxClientError(),
 						"Warning! Registration passed with invalid password. Code: " + response.getStatusCode());
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.PASSWORD_NOT_BLANK_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.PASSWORD_NOT_BLANK_ERROR), "Warning! Wrong error message: " + response.getBody());
 				assertFalse(userRepository.findByEmail(userRegistrationDTO.getEmail()).isPresent(), "Warning! Email found in DB");
 			}
 
@@ -251,7 +252,7 @@ class UserControllerTest {
 			void givenTooShortPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
 				// Given
 				userRegistrationDTO.setPassword("Invalid");
-				userRegistrationDTO.setRepeatedPassword("Invalid");
+				userRegistrationDTO.setConfirmPassword("Invalid");
 				HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 				// When
 				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
@@ -260,7 +261,24 @@ class UserControllerTest {
 						"Warning! Registration passed with too short password. Code: " + response.getStatusCode());
 				assertFalse(userRepository.findByEmail(userRegistrationDTO.getEmail()).isPresent(), "Warning! Email found in DB");
 				assertNotNull(response.getBody());
-				assertTrue(response.getBody().contains(Messages.PASSWORD_LENGTH_ERROR), "Warning! Wrong error message");
+				assertTrue(response.getBody().contains(Messages.PASSWORD_LENGTH_ERROR), "Warning! Wrong error message: " + response.getBody());
+			}
+
+			@Test
+			@DisplayName("❌ Negative Case: Wrong confirm password")
+			void givenWrongConfirmPassword_WhenSendingPostRequest_ThenUserIsNotCreated() {
+				// Given
+				userRegistrationDTO.setPassword(validPassword);
+				userRegistrationDTO.setConfirmPassword("Invalid");
+				HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
+				// When
+				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+				// Then
+				assertTrue(response.getStatusCode().is4xxClientError(),
+						"Warning! Registration passed with too short password. Code: " + response.getStatusCode());
+				assertFalse(userRepository.findByEmail(userRegistrationDTO.getEmail()).isPresent(), "Warning! Email found in DB");
+				assertNotNull(response.getBody());
+				assertTrue(response.getBody().contains(Messages.INVALID_CONFIRM_PASSWORD_ERROR), "Warning! Wrong error message: " + response.getBody());
 			}
 		}
 	}
@@ -275,11 +293,11 @@ class UserControllerTest {
 	class UserControllerTestDeleteUser {
 		private String deleteUserUrl;
 
-		//		@BeforeEach
-		//		void initAll() {
-		//			deleteUserUrl = "http://localhost:" + port + "/api/user/delete/";
-		//			user = new User();
-		//		}
+//				@BeforeEach
+//				void initAll() {
+//					deleteUserUrl = "http://localhost:" + port + "/api/user/delete/";
+//					user = new User();
+//				}
 		//		TODO DO zrobienia testy
 		//		testRestTemplate.delete(deleteUserUrl + createdUser.getId());
 	}

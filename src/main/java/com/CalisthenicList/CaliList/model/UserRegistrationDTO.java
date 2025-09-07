@@ -30,7 +30,6 @@ public class UserRegistrationDTO {
 	@NotBlank(message = Messages.PASSWORD_NOT_BLANK_ERROR)
 	private String password;
 
-	@Size(min = PASSWORD_MIN_LENGTH, message = Messages.PASSWORD_LENGTH_ERROR)
 	@NotBlank(message = Messages.PASSWORD_NOT_BLANK_ERROR)
-	private String repeatedPassword;
+	private String confirmPassword;
 }

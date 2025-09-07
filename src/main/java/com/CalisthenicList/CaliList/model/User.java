@@ -9,12 +9,14 @@ import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static com.CalisthenicList.CaliList.constants.UserConstants.PASSWORD_MIN_LENGTH;
 import static com.CalisthenicList.CaliList.constants.UserConstants.USERNAME_MAX_LENGTH;
@@ -27,8 +29,8 @@ import static com.CalisthenicList.CaliList.constants.UserConstants.USERNAME_MAX_
 public class User {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
 	@Size(min = 1, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
 	@NotBlank(message = Messages.USERNAME_NOT_BLANK_ERROR)
@@ -49,6 +51,10 @@ public class User {
 	@Column(nullable = false)
 	private Roles role;
 
+	@Setter
+	@Column(nullable = false)
+	private boolean emailVerified;
+
 	@Past(message = Messages.BIRTHDATE_PAST_ERROR)
 	private LocalDate birthDate;
 
@@ -64,6 +70,7 @@ public class User {
 		this.email = email;
 		this.password = password;
 		this.role = Roles.ROLE_USER;
+		this.emailVerified = false;
 	}
 }
 

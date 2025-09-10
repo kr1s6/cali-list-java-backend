@@ -1,5 +1,6 @@
 package com.CalisthenicList.CaliList.service;
 
+import com.CalisthenicList.CaliList.configurations.SecurityConfig;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -9,6 +10,7 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +42,11 @@ class EmailServiceTest {
 	@InjectMocks
 	private EmailService emailService;
 
+	@BeforeAll
+	static void init() {
+		SecurityConfig.TOKEN_CAPACITY = 100;
+	}
+
 	@Test
 	@DisplayName("✅ Happy Case: Verification token has expected values.")
 	void postEmailVerificationToUser() throws Exception {
@@ -57,12 +64,12 @@ class EmailServiceTest {
 //		Then
 		verify(javaMailSender).send(mimeMessage);
 		InternetAddress from = new InternetAddress("no-reply@CaliList.com", "CaliList");
-		assertEquals(from, mimeMessage.getFrom()[0]);
-		assertEquals(userEmail, mimeMessage.getAllRecipients()[0].toString());
-		assertEquals("Email verification", mimeMessage.getSubject());
+		assertEquals(from, mimeMessage.getFrom()[0], "Email sender doesn't match.");
+		assertEquals(userEmail, mimeMessage.getAllRecipients()[0].toString(), "Email recipient doesn't match.");
+		assertEquals("Email verification", mimeMessage.getSubject(), "Email subject doesn't match.");
 		String verifyUrl = this.emailService.VERIFICATION_BASE_URL + URLEncoder.encode(token, StandardCharsets.UTF_8);
 		String expectedContent = "Click below to verify your email:\n" + verifyUrl;
-		assertEquals(expectedContent, mimeMessage.getContent().toString());
+		assertEquals(expectedContent, mimeMessage.getContent().toString(), "Email content doesn't match.");
 	}
 
 	@Test
@@ -79,12 +86,12 @@ class EmailServiceTest {
 				.parseSignedClaims(token)
 				.getPayload();
 //		Then
-		assertEquals(claims.getSubject(), userId.toString());
+		assertEquals(claims.getSubject(), userId.toString(), "Token subject doesn't match.");
 		Date shortAfterExpirationTime = Date.from(Instant.now().plus(Duration.ofHours(emailService.TokenExpirationTime)));
 		Date shortBeforeExpirationTime = Date.from(Instant.now().plus(Duration.ofHours(emailService.TokenExpirationTime)).minus(Duration.ofMinutes(1)));
-		assertTrue(claims.getExpiration().before(shortAfterExpirationTime));
-		assertTrue(claims.getExpiration().after(shortBeforeExpirationTime));
-		assertTrue(claims.getIssuedAt().before(Date.from(Instant.now())));
+		assertTrue(claims.getExpiration().before(shortAfterExpirationTime), "Token expiration time is too long.");
+		assertTrue(claims.getExpiration().after(shortBeforeExpirationTime), "Token expiration time is too short.");
+		assertTrue(claims.getIssuedAt().before(Date.from(Instant.now())), "Token issued time is in the future.");
 	}
 
 	@Test
@@ -97,12 +104,12 @@ class EmailServiceTest {
 		CharSequence wrongSecretKey = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
 //		Then
 		assertThrows(SignatureException.class, () ->
-				Jwts.parser()
-						.verifyWith(emailService.getSecretKey(wrongSecretKey))
-						.build()
-						.parseSignedClaims(token)
-						.getPayload()
-		);
+						Jwts.parser()
+								.verifyWith(emailService.getSecretKey(wrongSecretKey))
+								.build()
+								.parseSignedClaims(token)
+								.getPayload()
+				, "Verification passed with invalid secret key.");
 	}
 }
 

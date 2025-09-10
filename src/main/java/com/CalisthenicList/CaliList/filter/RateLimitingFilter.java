@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.service;
+package com.CalisthenicList.CaliList.filter;
 
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.*;
@@ -11,6 +11,7 @@ import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
+//INFO - Limit how many request user can do onn minute. Bucket configuration in SecurityConfig
 public class RateLimitingFilter implements Filter {
 	private final Bucket bucket;
 

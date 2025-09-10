@@ -18,7 +18,7 @@ public class SecurityConfig {
 	private static final int parallelism = 1;
 	private static final int memory = 12_288;
 	private static final int iterations = 3;
-	public static int TOKEN_CAPACITY = 5;
+	public static int TOKEN_CAPACITY = 10;
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {
@@ -26,7 +26,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public Bucket rateLimitBucket() {
+	public Bucket bucket() {
 		Bandwidth limit = Bandwidth.builder()
 				.capacity(TOKEN_CAPACITY)
 				.refillGreedy(TOKEN_CAPACITY, REFILL_PERIOD)
@@ -35,4 +35,5 @@ public class SecurityConfig {
 				.addLimit(limit)
 				.build();
 	}
+
 }

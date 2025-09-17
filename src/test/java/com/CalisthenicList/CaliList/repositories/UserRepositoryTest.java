@@ -273,6 +273,16 @@ class UserRepositoryTest {
 			// When Then
 			assertDoesNotThrow(() -> userRepository.saveAndFlush(user));
 		}
+
+		@Test
+		@DisplayName("✅ Happy Case: User registered with very long password")
+		void givenLongPassword_WhenSendingPostRequest_ThenUserIsCreated() {
+			// Given
+			String veryLongPassword = "A1a".repeat(50); // 150 chars
+			User user = new User(validUsername, validEmail, veryLongPassword);
+			// When Then
+			assertDoesNotThrow(() -> userRepository.saveAndFlush(user));
+		}
 	}
 
 	@Nested

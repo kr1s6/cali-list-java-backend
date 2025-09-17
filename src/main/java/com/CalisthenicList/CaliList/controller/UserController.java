@@ -24,7 +24,6 @@ public class UserController {
 	public ResponseEntity<List<String>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto) {
 		return userService.registrationService(userDto);
 //        TODO
-//         - Include a password strength meter (zxcvbn-ts library) (Frontend)
 //         - Implement Secure Password Recovery Mechanism
 	}
 

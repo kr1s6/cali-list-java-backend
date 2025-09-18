@@ -55,6 +55,7 @@ public class User {
 	@Column(nullable = false)
 	private boolean emailVerified;
 
+	@Setter
 	@Past(message = Messages.BIRTHDATE_PAST_ERROR)
 	private LocalDate birthDate;
 

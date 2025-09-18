@@ -20,8 +20,8 @@ import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-public class UserControllerService {
-	private static final Logger logger = Logger.getLogger(UserControllerService.class.getName());
+public class UserService {
+	private final Logger logger = Logger.getLogger(UserService.class.getName());
 	private final UserRepository userRepository;
 	private final PasswordEncoder encoder;
 	private final EmailService emailService;
@@ -30,6 +30,7 @@ public class UserControllerService {
 		String rawPassword = userDto.getPassword();
 		List<String> responseBody = collectRegistrationErrors(userDto);
 		if(!responseBody.isEmpty()) {
+			logger.warning("Registration failed due to errors.");
 			return new ResponseEntity<>(responseBody, HttpStatus.CONFLICT);
 		}
 		String encodedPassword = encoder.encode(rawPassword);
@@ -43,6 +44,7 @@ public class UserControllerService {
 		userRepository.save(user);
 		emailService.postEmailVerificationToUser(user.getId(), user.getEmail());
 		responseBody.add(Messages.USER_REGISTERED_SUCCESS);
+		logger.info("User registered successfully.");
 		return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
 	}
 
@@ -104,6 +106,7 @@ public class UserControllerService {
 		}
 		User userToDelete = userOptional.get();
 		userRepository.delete(userToDelete);
+		logger.info("User deleted successfully.");
 		return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
 	}
 }

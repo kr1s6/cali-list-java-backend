@@ -20,10 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.xbill.DNS.Lookup;
+import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
-import org.xbill.DNS.TextParseException;
-import org.xbill.DNS.Type;
 
 import javax.crypto.SecretKey;
 import java.io.UnsupportedEncodingException;
@@ -33,16 +31,18 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
-	public final int TokenExpirationTime = 2;
+	public final int TokenExpirationTimeHours = 2;
 	public final String VERIFICATION_BASE_URL = "http://localhost:8080/api/user/email-verification/";
+	private final Logger logger = Logger.getLogger(EmailService.class.getName());
 	private final JavaMailSender javaMailSender; //INFO - JavaMailSender @Bean is loaded automatically with "spring.mail" properties
 	private final UserRepository userRepository;
 	@Value("${secret.key}")
-	public CharSequence secretKey;
+	private CharSequence secretKey;
 
 	public boolean dnsEmailLookup(String email) {
 		String domain = email.substring(email.indexOf("@") + 1);
@@ -62,6 +62,7 @@ public class EmailService {
 			String content = "Click below to verify your email:\n" + verifyUrl;
 			helper.setText(content);
 		} catch(UnsupportedEncodingException | MessagingException e) {
+			logger.warning("Failed to compose verification email.");
 			throw new IllegalStateException("Failed to compose verification email", e);
 		}
 		javaMailSender.send(message);
@@ -70,7 +71,7 @@ public class EmailService {
 	public String createVerificationTokenWithId(UUID userId) {
 		Instant now = Instant.now();
 		Date issuedAt = Date.from(now);
-		Date expiration = Date.from(now.plus(Duration.ofHours(TokenExpirationTime)));
+		Date expiration = Date.from(now.plus(Duration.ofHours(TokenExpirationTimeHours)));
 		SecretKey key = getSecretKey(secretKey);
 		return Jwts.builder()
 				.subject(String.valueOf(userId))
@@ -78,11 +79,6 @@ public class EmailService {
 				.expiration(expiration)
 				.signWith(key, Jwts.SIG.HS256)
 				.compact();
-	}
-
-	public SecretKey getSecretKey(CharSequence secretKey) {
-		byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-		return Keys.hmacShaKeyFor(keyBytes);
 	}
 
 	public ResponseEntity<String> verifyEmail(String token) {
@@ -95,18 +91,27 @@ public class EmailService {
 					.parseSignedClaims(token)
 					.getPayload();
 		} catch(ExpiredJwtException e) {
+			logger.warning("Attempted verification of expired token.");
 			return new ResponseEntity<>(Messages.TOKEN_EXPIRED, HttpStatus.BAD_REQUEST);
 		} catch(SignatureException | MalformedJwtException e) {
+			logger.warning("Attempted verification of invalid token.");
 			return new ResponseEntity<>(Messages.TOKEN_INVALID, HttpStatus.BAD_REQUEST);
 		}
 		UUID userId = UUID.fromString(claims.getSubject());
 		User user = userRepository.findById(userId).orElseThrow();
 		if(user.isEmailVerified()) {
+			logger.warning("Attempted verification of already verified email.");
 			return new ResponseEntity<>(Messages.EMAIL_ALREADY_VERIFIED, HttpStatus.ALREADY_REPORTED);
 		}
 		user.setEmailVerified(true);
 		userRepository.save(user);
+		logger.info("Email verified successfully.");
 		return new ResponseEntity<>(Messages.EMAIL_VERIFICATION_SUCCESS, HttpStatus.ACCEPTED);
+	}
+
+	public SecretKey getSecretKey(CharSequence secretKey) {
+		byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+		return Keys.hmacShaKeyFor(keyBytes);
 	}
 
 	private boolean hasMxRecord(String domain) {
@@ -119,7 +124,9 @@ public class EmailService {
 			Record[] records = lookup.getAnswers();
 			for(Record record : records) {
 				if(record.getType() == Type.MX) {
-					return true;
+					MXRecord mx = (MXRecord) record;
+					int priority = mx.getPriority();
+					return priority != 0;
 				}
 			}
 			return false;

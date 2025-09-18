@@ -3,7 +3,7 @@ package com.CalisthenicList.CaliList.controller;
 import com.CalisthenicList.CaliList.model.UserLoginDTO;
 import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.service.EmailService;
-import com.CalisthenicList.CaliList.service.UserControllerService;
+import com.CalisthenicList.CaliList.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,15 +16,14 @@ import java.util.UUID;
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class UserController {
-	private final UserControllerService userControllerService;
+	private final UserService userService;
 	private final EmailService emailService;
 
 	@PostMapping("/register")
 	//INFO registration request require Unique username, Unique email, password
 	public ResponseEntity<List<String>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto) {
-		return userControllerService.registrationService(userDto);
+		return userService.registrationService(userDto);
 //        TODO
-//         - Include a password strength meter (zxcvbn-ts library) (Frontend)
 //         - Implement Secure Password Recovery Mechanism
 	}
 
@@ -37,7 +36,7 @@ public class UserController {
 
 	@PostMapping("/login")
 	public ResponseEntity<List<String>> loginUser(@Valid @RequestBody UserLoginDTO userLoginDTO) {
-		return userControllerService.loginService(userLoginDTO);
+		return userService.loginService(userLoginDTO);
 //        TODO
 //         - User can use email or username as a [username]
 //         - Compare Password Hashes Using Safe Functions
@@ -47,7 +46,7 @@ public class UserController {
 
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<String> deleteUserById(@PathVariable UUID id) {
-		return userControllerService.deleteUserById(id);
+		return userService.deleteUserById(id);
 //      TODO
 //       - need to be secured for admin, tests and for user to delete himself
 	}

@@ -20,7 +20,7 @@ public final class Messages {
 	// Password
 	public static final String PASSWORD_LENGTH_ERROR = "The password must be at least 8 characters long.";
 	public static final String PASSWORD_NOT_BLANK_ERROR = "The password must not be blank.";
-	public static final String PASSWORD_INVALID_LOGIN_ERROR = "Invalid email or password";
+	public static final String INVALID_LOGIN_ERROR = "Invalid email or password";
 	public static final String INVALID_CONFIRM_PASSWORD_ERROR = "Wrong confirm password.";
 
 	// Birthdate

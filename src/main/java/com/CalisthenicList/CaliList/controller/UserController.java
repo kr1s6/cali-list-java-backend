@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class UserController {
+	public static final String loginUrl = "/login";
 	private final UserService userService;
 	private final EmailService emailService;
 
@@ -34,14 +34,12 @@ public class UserController {
 //				(Wyślij jako) dla tego adresu, łącznie z poprawnym SPF/DKIM/DMARC dla domeny
 	}
 
-	@PostMapping("/login")
+	@PostMapping(loginUrl)
+	//INFO login request require email and password
 	public ResponseEntity<List<String>> loginUser(@Valid @RequestBody UserLoginDTO userLoginDTO) {
 		return userService.loginService(userLoginDTO);
 //        TODO
-//         - User can use email or username as a [username]
-//         - Compare Password Hashes Using Safe Functions
-//         - "three strikes and you are out" policy is the pain for legitimate user
-//         - user get new token every login attempt
+//         - CAPTCHA
 	}
 
 	@DeleteMapping("/delete/{id}")

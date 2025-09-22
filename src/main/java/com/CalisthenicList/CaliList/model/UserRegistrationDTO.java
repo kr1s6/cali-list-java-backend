@@ -6,15 +6,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import static com.CalisthenicList.CaliList.constants.UserConstants.PASSWORD_MIN_LENGTH;
-import static com.CalisthenicList.CaliList.constants.UserConstants.USERNAME_MAX_LENGTH;
+import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 
-@Getter
 @Setter
-@NoArgsConstructor
+@Getter
 @AllArgsConstructor
 public class UserRegistrationDTO {
 
@@ -26,10 +23,11 @@ public class UserRegistrationDTO {
 	@NotBlank(message = Messages.EMAIL_INVALID_ERROR)
 	private String email;
 
-	@Size(min = PASSWORD_MIN_LENGTH, message = Messages.PASSWORD_LENGTH_ERROR)
+	@Size(min = PASSWORD_MIN_LENGTH, max = PASSWORD_MAX_LENGTH, message = Messages.PASSWORD_LENGTH_ERROR)
 	@NotBlank(message = Messages.PASSWORD_NOT_BLANK_ERROR)
 	private String password;
 
 	@NotBlank(message = Messages.PASSWORD_NOT_BLANK_ERROR)
 	private String confirmPassword;
+
 }

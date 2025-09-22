@@ -25,6 +25,7 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final PasswordEncoder encoder;
 	private final EmailService emailService;
+	private final JwtService jwtService;
 
 	public ResponseEntity<List<String>> registrationService(UserRegistrationDTO userDto) {
 		String rawPassword = userDto.getPassword();
@@ -79,22 +80,23 @@ public class UserService {
 
 	public ResponseEntity<List<String>> loginService(UserLoginDTO userLoginDTO) {
 		List<String> responseBody = new ArrayList<>();
-		Optional<User> userOptional = userRepository.findByEmail(userLoginDTO.getUsername());
+		Optional<User> userOptional = userRepository.findByEmail(userLoginDTO.getEmail());
 		if(userOptional.isEmpty()) {
 			logger.warning("Login attempt with non-existing email.");
-			responseBody.add(Messages.PASSWORD_INVALID_LOGIN_ERROR);
+			responseBody.add(Messages.INVALID_LOGIN_ERROR);
 			return new ResponseEntity<>(responseBody, HttpStatus.UNAUTHORIZED);
 		}
-
 		User user = userOptional.get();
 		boolean matches = encoder.matches(userLoginDTO.getPassword(), user.getPassword());
 		if(!matches) {
 			logger.warning("Invalid password attempt for email.");
-			responseBody.add(Messages.PASSWORD_INVALID_LOGIN_ERROR);
+			responseBody.add(Messages.INVALID_LOGIN_ERROR);
 			return new ResponseEntity<>(responseBody, HttpStatus.UNAUTHORIZED);
 		}
 		logger.info("User logged in successfully.");
+		String token = jwtService.generateJwtToken(user.getEmail());
 		responseBody.add(Messages.LOGIN_SUCCESS);
+		responseBody.add(token);
 		return new ResponseEntity<>(responseBody, HttpStatus.OK);
 	}
 
@@ -110,13 +112,5 @@ public class UserService {
 		return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
 	}
 }
-
-
-
-
-
-
-
-
 
 

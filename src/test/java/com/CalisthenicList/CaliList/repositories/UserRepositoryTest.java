@@ -265,6 +265,18 @@ class UserRepositoryTest {
 		}
 
 		@Test
+		@DisplayName("❌ Negative Case: Password too long")
+		void givenTooLongPassword_whenSave_thenThrowException() {
+			// Given
+			String tooLongPassword = "a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1);
+			User user = new User(validUsername, validEmail, tooLongPassword);
+			// When Then
+			ConstraintViolationException exception = assertThrows(ConstraintViolationException.class, () -> userRepository.saveAndFlush(user));
+			String message = exception.getConstraintViolations().iterator().next().getMessage();
+			assertEquals(Messages.PASSWORD_LENGTH_ERROR, message, "Wrong error message for short password.");
+		}
+
+		@Test
 		@DisplayName("✅ Happy Case: Password at minimum length is valid")
 		void givenPasswordAtMinLength_whenSave_thenNotThrowException() {
 			// Given

@@ -1,5 +1,6 @@
 package com.CalisthenicList.CaliList.filter;
 
+import com.CalisthenicList.CaliList.controller.UserController;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -37,23 +38,27 @@ public class UserValidationRateLimitingFilter extends OncePerRequestFilter {
 	//INFO: Rate limit mechanism for every user IP
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse httpResponse,
 									@NonNull FilterChain filterChain) throws ServletException, IOException {
-		// Get the client's IP address
-		String clientIp = request.getRemoteAddr();
-		// Initialize the count if the IP is new, otherwise get the current count
-		requestCounts.putIfAbsent(clientIp, 0);
-		int requestCount = requestCounts.get(clientIp);
+		if(UserController.loginUrl.equals(request.getRequestURI())) {
+			// Get the client's IP address
+			String clientIp = request.getRemoteAddr();
+			// Initialize the count if the IP is new, otherwise get the current count
+			requestCounts.putIfAbsent(clientIp, 0);
+			int requestCount = requestCounts.get(clientIp);
 
-		// If the count exceeds the limit, return a "Too Many Requests" response
-		if(requestCount >= MAX_HEAVY_REQUESTS_PER_MINUTE) {
-			httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-			httpResponse.setContentType("application/json");
-			httpResponse.setCharacterEncoding("UTF-8");
-			httpResponse.getWriter().write("Too many requests. Please try again later.");
-			logger.warn("Too many requests. Please try again later.");
-			return;
+			// If the count exceeds the limit, return a "Too Many Requests" response
+			if(requestCount >= MAX_HEAVY_REQUESTS_PER_MINUTE) {
+				httpResponse.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+				httpResponse.setContentType("application/json");
+				httpResponse.setCharacterEncoding("UTF-8");
+				httpResponse.getWriter().write("Too many requests. Please try again later.");
+				logger.warn("Too many requests. Please try again later.");
+				return;
+			}
+			// Otherwise, increment the request count and proceed with the request
+			requestCounts.put(clientIp, requestCount + 1);
 		}
-		// Otherwise, increment the request count and proceed with the request
-		requestCounts.put(clientIp, requestCount + 1);
 		filterChain.doFilter(request, httpResponse);
 	}
+
+
 }

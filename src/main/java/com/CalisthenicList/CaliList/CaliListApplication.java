@@ -8,7 +8,4 @@ public class CaliListApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CaliListApplication.class, args);
 	}
-	//	TODO
-	//		- check periodically if there are expected number of users with ADMIN_ROLE
-
 }

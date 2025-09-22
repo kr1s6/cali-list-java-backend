@@ -18,8 +18,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import static com.CalisthenicList.CaliList.constants.UserConstants.PASSWORD_MIN_LENGTH;
-import static com.CalisthenicList.CaliList.constants.UserConstants.USERNAME_MAX_LENGTH;
+import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 
 @Getter
 @Entity
@@ -42,9 +41,9 @@ public class User {
 	@Column(nullable = false, unique = true)
 	private String email;
 
-	@Size(min = PASSWORD_MIN_LENGTH, message = Messages.PASSWORD_LENGTH_ERROR)
+	@Size(min = PASSWORD_MIN_LENGTH, max = PASSWORD_MAX_LENGTH, message = Messages.PASSWORD_LENGTH_ERROR)
 	@NotBlank(message = Messages.PASSWORD_NOT_BLANK_ERROR)
-	@Column(nullable = false)
+	@Column(nullable = false, length = PASSWORD_MAX_LENGTH)
 	private String password;
 
 	@Enumerated(EnumType.STRING)

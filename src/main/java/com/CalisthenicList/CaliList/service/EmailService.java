@@ -37,11 +37,11 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 public class EmailService {
 	public final int TokenExpirationTimeHours = 2;
-	public final String VERIFICATION_BASE_URL = "http://localhost:8080/api/user/email-verification/";
+	public final String VERIFICATION_BASE_URL = "http://localhost:8080/email-verification/";
 	private final Logger logger = Logger.getLogger(EmailService.class.getName());
 	private final JavaMailSender javaMailSender; //INFO - JavaMailSender @Bean is loaded automatically with "spring.mail" properties
 	private final UserRepository userRepository;
-	@Value("${secret.key}")
+	@Value("${jwt.secret}")
 	private CharSequence secretKey;
 
 	public boolean dnsEmailLookup(String email) {

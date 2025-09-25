@@ -12,8 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -27,9 +27,9 @@ public class UserService {
 	private final EmailService emailService;
 	private final JwtService jwtService;
 
-	public ResponseEntity<List<String>> registrationService(UserRegistrationDTO userDto) {
+	public ResponseEntity<Map<String, String>> registrationService(UserRegistrationDTO userDto) {
 		String rawPassword = userDto.getPassword();
-		List<String> responseBody = collectRegistrationErrors(userDto);
+		Map<String, String> responseBody = collectRegistrationErrors(userDto);
 		if(!responseBody.isEmpty()) {
 			logger.warning("Registration failed due to errors.");
 			return new ResponseEntity<>(responseBody, HttpStatus.CONFLICT);
@@ -37,20 +37,22 @@ public class UserService {
 		String encodedPassword = encoder.encode(rawPassword);
 		userDto.setPassword(encodedPassword);
 		if(encodedPassword.equals(rawPassword)) {
-			responseBody.add(Messages.SERVICE_ERROR);
+			responseBody.put("service_error", Messages.SERVICE_ERROR);
 			logger.warning("Password encoding failed.");
 			return new ResponseEntity<>(responseBody, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		User user = Mapper.newUser(userDto);
 		userRepository.save(user);
 		emailService.postEmailVerificationToUser(user.getId(), user.getEmail());
-		responseBody.add(Messages.USER_REGISTERED_SUCCESS);
+		responseBody.put("message", Messages.USER_REGISTERED_SUCCESS);
+		String jwt = jwtService.generateJwtToken(user.getEmail());
+		responseBody.put("jwt", jwt);
 		logger.info("User registered successfully.");
 		return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
 	}
 
-	private List<String> collectRegistrationErrors(UserRegistrationDTO userDto) {
-		List<String> errors = new ArrayList<>();
+	private Map<String, String> collectRegistrationErrors(UserRegistrationDTO userDto) {
+		Map<String, String> errors = new HashMap<>();
 		String username = userDto.getUsername();
 		String email = userDto.getEmail();
 		String rawPassword = userDto.getPassword();
@@ -60,43 +62,43 @@ public class UserService {
 		boolean usernameAlreadyExists = userRepository.findByUsername(username).isPresent();
 		boolean validRepeatablePassword = rawPassword.equals(rawRepeatedPassword);
 		if(emailAlreadyExists) {
-			errors.add(Messages.EMAIL_ALREADY_EXISTS_ERROR);
+			errors.put("email", Messages.EMAIL_ALREADY_EXISTS_ERROR);
 			logger.warning("Attempted registration with existing email.");
 		}
 		if(!emailDomainExists) {
-			errors.add(Messages.EMAIL_INVALID_ERROR);
+			errors.put("email", Messages.EMAIL_INVALID_ERROR);
 			logger.warning("Attempted registration with invalid email domain.");
 		}
 		if(usernameAlreadyExists) {
-			errors.add(Messages.USERNAME_ALREADY_EXISTS_ERROR);
+			errors.put("username", Messages.USERNAME_ALREADY_EXISTS_ERROR);
 			logger.warning("Attempted registration with existing username.");
 		}
 		if(!validRepeatablePassword) {
-			errors.add(Messages.INVALID_CONFIRM_PASSWORD_ERROR);
+			errors.put("password", Messages.INVALID_CONFIRM_PASSWORD_ERROR);
 			logger.warning("Wrong password confirmation.");
 		}
 		return errors;
 	}
 
-	public ResponseEntity<List<String>> loginService(UserLoginDTO userLoginDTO) {
-		List<String> responseBody = new ArrayList<>();
+	public ResponseEntity<Map<String, String>> loginService(UserLoginDTO userLoginDTO) {
+		Map<String, String> responseBody = new HashMap<>();
 		Optional<User> userOptional = userRepository.findByEmail(userLoginDTO.getEmail());
 		if(userOptional.isEmpty()) {
 			logger.warning("Login attempt with non-existing email.");
-			responseBody.add(Messages.INVALID_LOGIN_ERROR);
+			responseBody.put("message", Messages.INVALID_LOGIN_ERROR);
 			return new ResponseEntity<>(responseBody, HttpStatus.UNAUTHORIZED);
 		}
 		User user = userOptional.get();
 		boolean matches = encoder.matches(userLoginDTO.getPassword(), user.getPassword());
 		if(!matches) {
 			logger.warning("Invalid password attempt for email.");
-			responseBody.add(Messages.INVALID_LOGIN_ERROR);
+			responseBody.put("message", Messages.INVALID_LOGIN_ERROR);
 			return new ResponseEntity<>(responseBody, HttpStatus.UNAUTHORIZED);
 		}
 		logger.info("User logged in successfully.");
-		String token = jwtService.generateJwtToken(user.getEmail());
-		responseBody.add(Messages.LOGIN_SUCCESS);
-		responseBody.add(token);
+		String jwt = jwtService.generateJwtToken(user.getEmail());
+		responseBody.put("message", Messages.LOGIN_SUCCESS);
+		responseBody.put("jwt", jwt);
 		return new ResponseEntity<>(responseBody, HttpStatus.OK);
 	}
 

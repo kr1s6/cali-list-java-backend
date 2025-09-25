@@ -31,7 +31,7 @@ public class User {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@Size(min = 1, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
+	@Size(min = USERNAME_MIN_LENGTH, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
 	@NotBlank(message = Messages.USERNAME_NOT_BLANK_ERROR)
 	@Column(nullable = false, unique = true, length = USERNAME_MAX_LENGTH)
 	private String username;

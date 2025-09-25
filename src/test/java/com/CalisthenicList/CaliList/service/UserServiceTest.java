@@ -6,10 +6,7 @@ import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserLoginDTO;
 import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -19,7 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +32,8 @@ class UserServiceTest {
 	private PasswordEncoder passwordEncoder;
 	@Mock
 	private EmailService emailService;
+	@Mock
+	private JwtService jwtService;
 	@InjectMocks
 	private UserService userService;
 
@@ -59,13 +58,15 @@ class UserServiceTest {
 		@DisplayName("✅ Happy Case: User registered with valid credentials")
 		void givenValidUserDTO_whenRegister_thenReturnUserRegisteredSuccess() {
 			// Given
+			Mockito.when(jwtService.generateJwtToken(anyString())).thenReturn("sdasfsfsfsfsfsf");
 			Mockito.when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Registration failed. Code: " + response.getStatusCode());
-			assertEquals(response.getBody(), List.of(Messages.USER_REGISTERED_SUCCESS), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.USER_REGISTERED_SUCCESS, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -74,11 +75,12 @@ class UserServiceTest {
 			// Given
 			Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(false);
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.EMAIL_INVALID_ERROR), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.EMAIL_INVALID_ERROR, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -87,11 +89,12 @@ class UserServiceTest {
 			// Given
 			Mockito.when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(new User("test", "test", "test")));
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.EMAIL_ALREADY_EXISTS_ERROR), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.EMAIL_ALREADY_EXISTS_ERROR, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -100,11 +103,12 @@ class UserServiceTest {
 			// Given
 			Mockito.when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(new User("test", "test", "test")));
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.USERNAME_ALREADY_EXISTS_ERROR), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.USERNAME_ALREADY_EXISTS_ERROR, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -113,11 +117,12 @@ class UserServiceTest {
 			// Given
 			userRegistrationDTO.setConfirmPassword("test");
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.INVALID_CONFIRM_PASSWORD_ERROR), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.INVALID_CONFIRM_PASSWORD_ERROR, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -127,11 +132,12 @@ class UserServiceTest {
 			userRegistrationDTO.setPassword("a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1));
 			userRegistrationDTO.setConfirmPassword("a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1));
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.INVALID_CONFIRM_PASSWORD_ERROR), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.INVALID_CONFIRM_PASSWORD_ERROR, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -140,11 +146,12 @@ class UserServiceTest {
 			// Given
 			Mockito.when(passwordEncoder.encode(password)).thenReturn(password);
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.INTERNAL_SERVER_ERROR), "Should return Internal Server Error.");
-			assertEquals(response.getBody(), List.of(Messages.SERVICE_ERROR), "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.SERVICE_ERROR, response.getBody().get("message"), "Wrong error message.");
 		}
 
 		@Test
@@ -156,15 +163,17 @@ class UserServiceTest {
 			Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(false);
 			userRegistrationDTO.setConfirmPassword("test");
 			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
+			ResponseEntity<Map<String, String>> response = userService.registrationService(userRegistrationDTO);
 			// Then
 			System.out.println(response);
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			List<String> expectedErrors = List.of(
-					Messages.EMAIL_ALREADY_EXISTS_ERROR, Messages.EMAIL_INVALID_ERROR,
-					Messages.USERNAME_ALREADY_EXISTS_ERROR, Messages.INVALID_CONFIRM_PASSWORD_ERROR
+			Map<String, String> expectedErrors = Map.of(
+					"email", Messages.EMAIL_INVALID_ERROR,
+					"password", Messages.INVALID_CONFIRM_PASSWORD_ERROR,
+					"username", Messages.USERNAME_ALREADY_EXISTS_ERROR
 			);
-			assertEquals(response.getBody(), expectedErrors, "Wrong error message.");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(expectedErrors, response.getBody(), "Wrong error message.");
 		}
 
 	}
@@ -191,7 +200,7 @@ class UserServiceTest {
 		//	// Given
 		//	Mockito.when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 		//	// When
-		//	ResponseEntity<List<String>> response = userService.registrationService(userLoginDTO);
+		//	ResponseEntity<Map<String, String>> response = userService.registrationService(userLoginDTO);
 		//	// Then
 		//	System.out.println(response);
 		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Registration failed. Code: " + response.getStatusCode());
@@ -204,7 +213,7 @@ class UserServiceTest {
 		//	// Given
 		//	Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(false);
 		//	// When
-		//	ResponseEntity<List<String>> response = userService.registrationService(userLoginDTO);
+		//	ResponseEntity<Map<String, String>> response = userService.registrationService(userLoginDTO);
 		//	// Then
 		//	System.out.println(response);
 		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");

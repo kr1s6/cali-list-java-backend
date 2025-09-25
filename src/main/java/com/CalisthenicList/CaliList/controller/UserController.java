@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -21,7 +21,7 @@ public class UserController {
 
 	@PostMapping("/register")
 	//INFO registration request require Unique username, Unique email, password
-	public ResponseEntity<List<String>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto) {
+	public ResponseEntity<Map<String, String>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto) {
 		return userService.registrationService(userDto);
 //        TODO
 //         - Implement Secure Password Recovery Mechanism
@@ -36,7 +36,7 @@ public class UserController {
 
 	@PostMapping(loginUrl)
 	//INFO login request require email and password
-	public ResponseEntity<List<String>> loginUser(@Valid @RequestBody UserLoginDTO userLoginDTO) {
+	public ResponseEntity<Map<String, String>> loginUser(@Valid @RequestBody UserLoginDTO userLoginDTO) {
 		return userService.loginService(userLoginDTO);
 //        TODO
 //         - CAPTCHA

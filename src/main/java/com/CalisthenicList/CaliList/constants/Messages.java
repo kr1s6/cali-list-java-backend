@@ -6,7 +6,7 @@ import lombok.experimental.UtilityClass;
 public final class Messages {
 	// Username
 	public static final String USERNAME_LENGTH_ERROR = "The username must be between 1 and 30 characters long.";
-	public static final String USERNAME_NOT_BLANK_ERROR = "The username must not be blank.";
+	public static final String USERNAME_NOT_BLANK_ERROR = "The username must not be empty.";
 	public static final String USERNAME_ALREADY_EXISTS_ERROR = "Username already exists.";
 
 	// Email
@@ -19,7 +19,7 @@ public final class Messages {
 
 	// Password
 	public static final String PASSWORD_LENGTH_ERROR = "The password must be at least 8 characters long.";
-	public static final String PASSWORD_NOT_BLANK_ERROR = "The password must not be blank.";
+	public static final String PASSWORD_NOT_BLANK_ERROR = "The password must not be empty.";
 	public static final String INVALID_LOGIN_ERROR = "Invalid email or password.";
 	public static final String INVALID_CONFIRM_PASSWORD_ERROR = "Wrong confirm password.";
 

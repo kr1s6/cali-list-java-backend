@@ -44,10 +44,9 @@ public class AuthService {
 			logger.warning("Password encoding failed.");
 			throw new RuntimeException(Messages.SERVICE_ERROR);
 		}
-		userDto.setPassword(encodedPassword);
 
 		//Save user to DB
-		User user = new User(userDto.getUsername(), userDto.getEmail(), userDto.getPassword());
+		User user = new User(userDto.getUsername(), userDto.getEmail(), encodedPassword);
 		userRepository.save(user);
 
 		//Create cookie with refresh token

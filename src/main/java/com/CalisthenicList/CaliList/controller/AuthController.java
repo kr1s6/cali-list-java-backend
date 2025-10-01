@@ -33,7 +33,6 @@ public class AuthController {
 															HttpServletResponse response) {
 		return authService.registerUser(userDto, response);
 //        TODO
-//         - secure JWT token
 //         - Implement Secure Password Recovery Mechanism
 	}
 
@@ -60,8 +59,9 @@ public class AuthController {
 	}
 
 	@PostMapping(refreshTokenUrl)
-	public ResponseEntity<?> refreshToken(HttpServletRequest request) {
-		return refreshTokenService.getNewAccessToken(request);
+	public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String token,
+										  HttpServletResponse response) {
+		return refreshTokenService.getNewAccessToken(token, response);
 	}
 
 

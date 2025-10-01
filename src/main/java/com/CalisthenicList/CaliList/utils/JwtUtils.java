@@ -52,6 +52,11 @@ public class JwtUtils {
 		return (jwtSubject.equals(userDetails.getUsername())) && isJwtNotExpired(jwt);
 	}
 
+	public boolean validateJwt(String jwt, String email) {
+		final String jwtSubject = extractEmail(jwt);
+		return (jwtSubject.equals(email)) && isJwtNotExpired(jwt);
+	}
+
 	private boolean isJwtNotExpired(String jwt) {
 		return extractExpiration(jwt).after(new Date());
 	}

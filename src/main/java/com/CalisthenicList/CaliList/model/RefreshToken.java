@@ -7,16 +7,18 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "refresh_tokens")
 public class RefreshToken {
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	private Long id;
+	private UUID id;
 
 	@OneToOne
 	@JoinColumn(name = "user_id", referencedColumnName = "id")

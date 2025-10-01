@@ -14,8 +14,7 @@ public final class Messages {
 	public static final String EMAIL_ALREADY_EXISTS_ERROR = "Email already exists.";
 	public static final String EMAIL_ALREADY_VERIFIED = "Email is already verified.";
 	public static final String EMAIL_VERIFICATION_SUCCESS = "Email verification successful.";
-	public static final String TOKEN_EXPIRED = "Token expired. Generate new token in your profile settings.";
-	public static final String TOKEN_INVALID = "Invalid token.";
+	public static final String TOKEN_INVALID = "Token Invalid. Generate new token in your profile settings.";
 
 	// Password
 	public static final String PASSWORD_LENGTH_ERROR = "The password must be at least 8 characters long.";
@@ -28,6 +27,8 @@ public final class Messages {
 
 	// System / General
 	public static final String SERVICE_ERROR = "Service error. Contact support.";
+	public static final String USER_NOT_FOUND = "User not found.";
+	public static final String UNAUTHORIZED = "Error: Unauthorized";
 	public static final String USER_REGISTERED_SUCCESS = "User registered successfully.";
 	public static final String LOGIN_SUCCESS = "Login successful.";
 }

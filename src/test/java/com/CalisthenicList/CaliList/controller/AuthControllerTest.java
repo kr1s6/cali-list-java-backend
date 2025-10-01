@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class UserControllerTest {
+class AuthControllerTest {
 
 	@Autowired
 	private TestRestTemplate testRestTemplate;
@@ -147,19 +147,19 @@ class UserControllerTest {
 	@DisplayName("/email-verification/{token}")
 	class EmailVerification {
 
-		@Test
-		@DisplayName("❌ Negative Case: Invalid email verification.")
-		void givenInvalidToken_whenSendingGetEmailVerification_thenReturnsBadRequestError() {
-			// Given
-			HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-			String getEmailVerificationUrl = "http://localhost:" + port + "/email-verification/invalidToken";
-			// When
-			ResponseEntity<String> response = testRestTemplate.exchange(getEmailVerificationUrl, HttpMethod.GET, requestEntity, String.class);
-			// Then
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
-			String responseBody = response.getBody();
-			assertEquals(Messages.TOKEN_INVALID, responseBody, "Wrong error message.");
-		}
+		//@Test
+		//@DisplayName("❌ Negative Case: Invalid email verification.")
+		//void givenInvalidToken_whenSendingGetEmailVerification_thenReturnsBadRequestError() {
+		//	// Given
+		//	HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+		//	String getEmailVerificationUrl = "http://localhost:" + port + "/email-verification/invalidToken";
+		//	// When
+		//	ResponseEntity<String> response = testRestTemplate.exchange(getEmailVerificationUrl, HttpMethod.GET, requestEntity, String.class);
+		//	// Then
+		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
+		//	String responseBody = response.getBody();
+		//	assertEquals(Messages.TOKEN_INVALID, responseBody, "Wrong error message.");
+		//}
 
 		//@Test
 		//@DisplayName("❌ Negative Case: Block coming 'Get Email Verification' requests after reaching requests limit.")

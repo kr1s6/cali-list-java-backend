@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,10 +13,5 @@ import java.util.UUID;
 @NoArgsConstructor
 public class UserAuthResponseDTO {
 	private Map<String, String> message;
-	private String jwt;
-	private UUID userId;
-	private String username;
-	private String email;
-	private String role;
-	private boolean emailVerified;
+	private String accessToken;
 }

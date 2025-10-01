@@ -3,6 +3,7 @@ package com.CalisthenicList.CaliList.service;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
+import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.utils.JwtUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
@@ -13,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
@@ -20,9 +24,7 @@ import org.xbill.DNS.Record;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Logger;
 
 @Service
@@ -33,11 +35,13 @@ public class EmailService {
 	private final JavaMailSender javaMailSender; //INFO - JavaMailSender @Bean is loaded automatically with "spring.mail" properties
 	private final UserRepository userRepository;
 	private final JwtUtils jwtUtils;
+	private final UserDetailsService userDetailsService;
+	private final AccessTokenService accessTokenService;
 
 	@Async
 	public void postEmailVerificationToUser(String userEmail) {
 		//Generate token
-		String token = jwtUtils.generateJwtToken(userEmail);
+		String token = accessTokenService.generateAccessToken(userEmail);
 
 		//Create email
 		String verifyUrl = VERIFICATION_BASE_URL + URLEncoder.encode(token, StandardCharsets.UTF_8);
@@ -59,39 +63,38 @@ public class EmailService {
 		javaMailSender.send(message);
 	}
 
-	public ResponseEntity<Map<String, String>> verifyEmail(String jwtToken) {
-		Map<String, String> responseMessage = new HashMap<>();
-
-		//Validate jwtToken
-		boolean tokenIsValid = jwtUtils.validateJwtToken(jwtToken);
-		if(!tokenIsValid) {
-			logger.warning("Attempted verification of invalid token.");
-			responseMessage.put("message", Messages.TOKEN_EXPIRED);
-			return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
+	public ResponseEntity<Map<String, String>> verifyEmail(String jwt) {
+		//Validate jwt
+		String userEmail = jwtUtils.extractEmail(jwt);
+		if(userEmail == null) {
+			logger.warning("Attempted verification with invalid token.");
+			throw new IllegalArgumentException(Messages.TOKEN_INVALID);
+		}
+		UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+		boolean jwtIsValid = jwtUtils.validateJwt(jwt, userDetails);
+		if(!jwtIsValid) {
+			logger.warning("Attempted verification with invalid token.");
+			throw new IllegalArgumentException(Messages.TOKEN_INVALID);
 		}
 
 		//Validate if user exists
-		String email = jwtUtils.extractEmailFromToken(jwtToken);
-		Optional<User> userOptional = userRepository.findByEmail(email);
-		if(userOptional.isEmpty()) {
-			logger.warning("Verification attempt for non-existing email.");
-			responseMessage.put("message", Messages.EMAIL_INVALID_ERROR);
-			return new ResponseEntity<>(responseMessage, HttpStatus.NOT_FOUND);
-		}
+		User user = userRepository.findByEmail(userEmail)
+				.orElseThrow(() -> {
+					logger.warning("Verification attempt for non-existing email.");
+					return new UsernameNotFoundException(Messages.EMAIL_INVALID_ERROR);
+				});
 
 		//Check if the email is already verified
-		User user = userOptional.get();
 		if(user.isEmailVerified()) {
 			logger.warning("Attempted verification of already verified email.");
-			responseMessage.put("message", Messages.EMAIL_ALREADY_VERIFIED);
-			return new ResponseEntity<>(responseMessage, HttpStatus.ALREADY_REPORTED);
+			throw new IllegalStateException(Messages.EMAIL_ALREADY_VERIFIED);
 		}
 
 		//Set email verification to true
 		user.setEmailVerified(true);
 		userRepository.save(user);
 		logger.info("Email verified successfully.");
-		responseMessage.put("message", Messages.EMAIL_VERIFICATION_SUCCESS);
+		Map<String, String> responseMessage = Map.of("message", Messages.EMAIL_VERIFICATION_SUCCESS);
 		return new ResponseEntity<>(responseMessage, HttpStatus.ACCEPTED);
 	}
 

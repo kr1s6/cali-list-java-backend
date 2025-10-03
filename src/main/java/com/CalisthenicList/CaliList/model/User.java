@@ -13,25 +13,30 @@ import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 
 @Getter
+@Setter
 @Entity
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "users")
-public class User {
-
+public class User implements UserDetails {
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@Size(min = 1, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
+	@Size(min = USERNAME_MIN_LENGTH, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
 	@NotBlank(message = Messages.USERNAME_NOT_BLANK_ERROR)
 	@Column(nullable = false, unique = true, length = USERNAME_MAX_LENGTH)
 	private String username;
@@ -50,11 +55,9 @@ public class User {
 	@Column(nullable = false)
 	private Roles role;
 
-	@Setter
 	@Column(nullable = false)
 	private boolean emailVerified;
 
-	@Setter
 	@Past(message = Messages.BIRTHDATE_PAST_ERROR)
 	private LocalDate birthDate;
 
@@ -71,6 +74,26 @@ public class User {
 		this.password = password;
 		this.role = Roles.ROLE_USER;
 		this.emailVerified = false;
+	}
+
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return List.of(new SimpleGrantedAuthority(role.name()));
+	}
+
+	public boolean isEnabled() {
+		return true;
+	}
+
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	public boolean isAccountNonLocked() {
+		return true;
+	}
+
+	public boolean isAccountNonExpired() {
+		return true;
 	}
 }
 

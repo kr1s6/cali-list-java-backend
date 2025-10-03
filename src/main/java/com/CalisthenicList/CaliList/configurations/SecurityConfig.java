@@ -1,6 +1,6 @@
 package com.CalisthenicList.CaliList.configurations;
 
-import com.CalisthenicList.CaliList.filter.JwtAuthenticationFilter;
+import com.CalisthenicList.CaliList.filter.AccessTokenAuthFilter;
 import com.CalisthenicList.CaliList.filter.UserValidationRateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,17 +19,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 // INFO - Configuration should be used for @Bean definition
 public class SecurityConfig {
-	private static final int saltLength = 16;
-	private static final int hashLength = 32;
-	private static final int parallelism = 1;
-	private static final int memory = 12_288;
-	private static final int iterations = 3;
-	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final AccessTokenAuthFilter accessTokenAuthFilter;
 	private final UserValidationRateLimitingFilter userValidationRateLimitingFilter;
-	private final AuthenticationEntryPointJwt authenticationEntryPointJwt;
+	private final AuthEntryPointJwt authEntryPointJwt;
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {
+		int saltLength = 16;
+		int hashLength = 32;
+		int parallelism = 1;
+		int memory = 12_288;
+		int iterations = 3;
 		return new Argon2PasswordEncoder(saltLength, hashLength, parallelism, memory, iterations);
 	}
 
@@ -40,7 +40,7 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				//The front-end side needs error, not redirection
 				.exceptionHandling(exceptionHandling ->
-						exceptionHandling.authenticationEntryPoint(authenticationEntryPointJwt))
+						exceptionHandling.authenticationEntryPoint(authEntryPointJwt))
 				//Not use sessions with JWT token and REST API
 				.sessionManagement(session ->
 						session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -48,7 +48,7 @@ public class SecurityConfig {
 						.requestMatchers("/delete/**").authenticated()
 						.anyRequest().permitAll()
 				)
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(accessTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(userValidationRateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}

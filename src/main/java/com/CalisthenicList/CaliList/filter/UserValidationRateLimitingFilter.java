@@ -59,6 +59,4 @@ public class UserValidationRateLimitingFilter extends OncePerRequestFilter {
 		}
 		filterChain.doFilter(request, httpResponse);
 	}
-
-
 }

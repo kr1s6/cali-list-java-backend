@@ -26,6 +26,7 @@ import java.util.UUID;
 import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 
 @Getter
+@Setter
 @Entity
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
@@ -54,11 +55,9 @@ public class User implements UserDetails {
 	@Column(nullable = false)
 	private Roles role;
 
-	@Setter
 	@Column(nullable = false)
 	private boolean emailVerified;
 
-	@Setter
 	@Past(message = Messages.BIRTHDATE_PAST_ERROR)
 	private LocalDate birthDate;
 

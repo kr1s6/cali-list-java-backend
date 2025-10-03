@@ -3,9 +3,12 @@ package com.CalisthenicList.CaliList.controller;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.constants.UserConstants;
 import com.CalisthenicList.CaliList.filter.UserValidationRateLimitingFilter;
+import com.CalisthenicList.CaliList.model.User;
+import com.CalisthenicList.CaliList.model.UserAuthResponseDTO;
 import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import org.junit.jupiter.api.*;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -15,8 +18,10 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -34,6 +39,14 @@ class AuthControllerTest {
 	@Autowired
 	private UserValidationRateLimitingFilter filter;
 	private int maxRequestsPerMinute;
+
+	private Optional<User> findByEmail(String email){
+		return userRepository.findByEmail(email);
+	}
+
+	private Optional<User> findByUsername(String username){
+		return userRepository.findByUsername(username);
+	}
 
 
 	@BeforeEach
@@ -71,11 +84,11 @@ class AuthControllerTest {
 
 		@AfterEach
 		void cleanUp() {
-			if(userRepository.findByEmail(validEmail).isPresent()) {
-				userRepository.delete(userRepository.findByEmail(validEmail).get());
+			if(findByEmail(validEmail).isPresent()) {
+				userRepository.delete(findByEmail(validEmail).get());
 			}
-			if(userRepository.findByUsername(validUsername).isPresent()) {
-				userRepository.delete(userRepository.findByUsername(validUsername).get());
+			if(findByUsername(validUsername).isPresent()) {
+				userRepository.delete(findByUsername(validUsername).get());
 			}
 		}
 
@@ -88,8 +101,8 @@ class AuthControllerTest {
 			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Should return Created.");
-			assertTrue(userRepository.findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
-			assertTrue(userRepository.findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+			assertTrue(findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
+			assertTrue(findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
 		}
 
 		@Test
@@ -104,8 +117,8 @@ class AuthControllerTest {
 			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Should return Created.");
-			assertTrue(userRepository.findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
-			assertTrue(userRepository.findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+			assertTrue(findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
+			assertTrue(findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
 		}
 
 		@Test
@@ -120,9 +133,28 @@ class AuthControllerTest {
 			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
-			assertFalse(userRepository.findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
-			assertFalse(userRepository.findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+			assertFalse(findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
+			assertFalse(findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
 		}
+
+		//@Test
+		//@DisplayName("❌ Negative Case: Password too long")
+		//void givenTooLongPassword_whenRegister_thenReturnInvalidConfirmPasswordError() {
+		//	// Given
+		//	Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(true);
+		//	Mockito.when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+		//	String tooLongPassword = "a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1);
+		//	userRegistrationDTO.setPassword(tooLongPassword);
+		//	userRegistrationDTO.setConfirmPassword(tooLongPassword);
+		//	// When
+		//	ResponseEntity<UserAuthResponseDTO> response = authService.registerUser(userRegistrationDTO, mockResponse);
+		//	// Then
+		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
+		//	assertNotNull(response.getBody());
+		//	//Validate message
+		//	UserAuthResponseDTO dto = response.getBody();
+		//	assertEquals(Messages.INVALID_CONFIRM_PASSWORD_ERROR, dto.getMessage().get("message"), "Wrong error message.");
+		//}
 
 		//@Test
 		//@DisplayName("❌ Negative Case: Block coming 'Post Register' requests after reaching requests limit.")

@@ -1,8 +1,10 @@
 package com.CalisthenicList.CaliList.utils;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,38 +36,36 @@ public class JwtUtils {
 				.compact();
 	}
 
-	public String extractEmail(String jwt) {
+	public boolean validateIfJwtSubjectMatchTheUser(String jwtSubject, UserDetails userDetails) {
+		return validateIfJwtSubjectMatchTheUser(jwtSubject, userDetails.getUsername());
+	}
+
+	public boolean validateIfJwtSubjectMatchTheUser(String jwtSubject, String email) {
+		return (jwtSubject.equals(email));
+	}
+
+	public String extractSubject(String jwt) {
 		return extractClaim(jwt, Claims::getSubject);
 	}
 
-	public Date extractExpiration(String jwt) {
-		return extractClaim(jwt, Claims::getExpiration);
-	}
-
-	public <T> T extractClaim(String jwt, Function<Claims, T> claimsResolver) {
-		final Claims claims = extractAllClaims(jwt);
+	private <T> T extractClaim(String jwt, Function<Claims, T> claimsResolver) {
+		Claims claims = extractClaims(jwt);
 		return claimsResolver.apply(claims);
 	}
 
-	public boolean validateJwt(String jwt, UserDetails userDetails) {
-		final String jwtSubject = extractEmail(jwt);
-		return (jwtSubject.equals(userDetails.getUsername())) && isJwtNotExpired(jwt);
-	}
-
-	public boolean validateJwt(String jwt, String email) {
-		final String jwtSubject = extractEmail(jwt);
-		return (jwtSubject.equals(email)) && isJwtNotExpired(jwt);
-	}
-
-	private boolean isJwtNotExpired(String jwt) {
-		return extractExpiration(jwt).after(new Date());
-	}
-
-	private Claims extractAllClaims(String jwt) {
-		return Jwts.parser()
-				.verifyWith(secretKey)
-				.build()
-				.parseSignedClaims(jwt)
-				.getPayload();
+	private Claims extractClaims(String jwt) {
+		try {
+			return Jwts.parser()
+					.verifyWith(secretKey)
+					.build()
+					.parseSignedClaims(jwt)
+					.getPayload();
+		} catch(SignatureException e) {
+			//Validated if the secret is correct
+			throw new SignatureException(e.getMessage());
+		} catch(ExpiredJwtException e) {
+			//Validated if jwt is expired
+			throw new ExpiredJwtException(e.getHeader(), e.getClaims(), "JWT token is expired: " + e.getMessage());
+		}
 	}
 }

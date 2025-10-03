@@ -14,7 +14,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +29,6 @@ public class RefreshTokenService {
 	private int refreshTokenDuration;
 	private final AccessTokenService accessTokenService;
 	private final JwtUtils jwtUtils;
-	private final UserDetailsService userDetailsService;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final UserRepository userRepository;
 	private Duration tokenDuration;
@@ -40,8 +38,8 @@ public class RefreshTokenService {
 		tokenDuration = Duration.ofDays(refreshTokenDuration);
 	}
 
-	public ResponseCookie createCookieWithRefreshToken(String email) {
-		RefreshToken refreshToken = createRefreshToken(email);
+	public ResponseCookie createCookieWithRefreshToken(String email, User user) {
+		RefreshToken refreshToken = createRefreshToken(email, user);
 		return ResponseCookie.from("refreshToken", refreshToken.getToken())
 				.httpOnly(true)
 				.secure(true)
@@ -51,10 +49,14 @@ public class RefreshTokenService {
 				.build();
 	}
 
-	public RefreshToken createRefreshToken(String email) {
-		String jwt = jwtUtils.generateJwt(email, tokenDuration);
+	public ResponseCookie createCookieWithRefreshToken(String email) {
 		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new UsernameNotFoundException(Messages.USER_NOT_FOUND));
+		return createCookieWithRefreshToken(email, user);
+	}
+
+	private RefreshToken createRefreshToken(String email, User user) {
+		String jwt = jwtUtils.generateJwt(email, tokenDuration);
 		//Update or create a refresh token
 		RefreshToken token = refreshTokenRepository.findByUserEmail(email)
 				.map(exists -> {
@@ -71,18 +73,20 @@ public class RefreshTokenService {
 		return refreshTokenRepository.save(token);
 	}
 
-	public ResponseEntity<?> getNewAccessToken(String token, HttpServletResponse response) {
+	public ResponseEntity<?> refreshAccessToken(String token, HttpServletResponse response) {
 		if(token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized - no refresh token");
 		}
+		//TODO - check if this if(token == null) is necessary
+
 		//Check if the refresh token exists
 		RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
 				.orElseThrow(() -> new UsernameNotFoundException(Messages.SERVICE_ERROR));
 
 		//Validate refresh token
-		String jwtEmail = jwtUtils.extractEmail(token);
+		String jwtEmail = jwtUtils.extractSubject(token);
 		String userEmail = refreshToken.getUser().getEmail();
-		if(jwtEmail == null || !jwtUtils.validateJwt(token, userEmail)) {
+		if(jwtEmail == null || !jwtUtils.validateIfJwtSubjectMatchTheUser(jwtEmail, userEmail)) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized - invalid token");
 		}
 

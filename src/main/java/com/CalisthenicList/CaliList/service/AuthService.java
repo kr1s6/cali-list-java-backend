@@ -84,7 +84,7 @@ public class AuthService {
 
 		//Create cookie with refresh token
 		String userEmail = user.getEmail();
-		ResponseCookie cookieWithRefreshToken = refreshTokenService.createCookieWithRefreshToken(userEmail);
+		ResponseCookie cookieWithRefreshToken = refreshTokenService.createCookieWithRefreshToken(userEmail, user);
 		response.addHeader(HttpHeaders.SET_COOKIE, cookieWithRefreshToken.toString());
 
 		//Create an access token

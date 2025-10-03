@@ -1,6 +1,6 @@
 package com.CalisthenicList.CaliList.configurations;
 
-import com.CalisthenicList.CaliList.filter.JwtAuthFilter;
+import com.CalisthenicList.CaliList.filter.AccessTokenAuthFilter;
 import com.CalisthenicList.CaliList.filter.UserValidationRateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 // INFO - Configuration should be used for @Bean definition
 public class SecurityConfig {
-	private final JwtAuthFilter jwtAuthFilter;
+	private final AccessTokenAuthFilter accessTokenAuthFilter;
 	private final UserValidationRateLimitingFilter userValidationRateLimitingFilter;
 	private final AuthEntryPointJwt authEntryPointJwt;
 
@@ -48,7 +48,7 @@ public class SecurityConfig {
 						.requestMatchers("/delete/**").authenticated()
 						.anyRequest().permitAll()
 				)
-				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(accessTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(userValidationRateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}

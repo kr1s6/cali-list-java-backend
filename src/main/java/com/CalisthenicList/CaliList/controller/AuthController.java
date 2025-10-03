@@ -6,7 +6,6 @@ import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.service.AuthService;
 import com.CalisthenicList.CaliList.service.EmailService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -61,8 +60,6 @@ public class AuthController {
 	@PostMapping(refreshTokenUrl)
 	public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String token,
 										  HttpServletResponse response) {
-		return refreshTokenService.getNewAccessToken(token, response);
+		return refreshTokenService.refreshAccessToken(token, response);
 	}
-
-
 }

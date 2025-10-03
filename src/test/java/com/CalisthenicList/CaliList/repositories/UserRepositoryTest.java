@@ -1,5 +1,6 @@
 package com.CalisthenicList.CaliList.repositories;
 
+import com.CalisthenicList.CaliList.configurations.JpaAuditingConfiguration;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.constants.UserConstants;
 import com.CalisthenicList.CaliList.enums.Roles;
@@ -15,6 +16,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
@@ -24,16 +26,24 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@Import(JpaAuditingConfiguration.class)
 //INFO: Configures an in-memory database (H2) by default,
 // - starts Spring, but only the JPA layer (not controllers, not services),
 // - rolls back the transaction after each test (tests remain clean).
 class UserRepositoryTest {
-
 	private final String validUsername = "TestUser";
 	private final String validEmail = "test@intera.pl";
 	private final String validPassword = "qWBRę LGć8MPł test";
 	@Autowired
 	private UserRepository userRepository;
+
+	private Optional<User> findByEmail(String email){
+		return userRepository.findByEmail(email);
+	}
+
+	private Optional<User> findByUsername(String username){
+		return userRepository.findByUsername(username);
+	}
 
 	@Test
 	@DisplayName("✅ Happy Case: Role is set to ROLE_USER")
@@ -114,7 +124,7 @@ class UserRepositoryTest {
 		@DisplayName("✅ Happy Case: Find user by username")
 		void givenExistingUser_whenFindByUsername_thenReturnUser() {
 			// When
-			Optional<User> userFound = userRepository.findByUsername(validUsername);
+			Optional<User> userFound = findByUsername(validUsername);
 			// Then
 			assertTrue(userFound.isPresent(), "User should be found by username");
 			assertEquals(validEmail, userFound.get().getEmail(), "Email does not match");
@@ -124,7 +134,7 @@ class UserRepositoryTest {
 		@DisplayName("✅ Happy Case: Find user by email")
 		void givenExistingUser_whenFindByEmail_thenReturnUser() {
 			// When
-			Optional<User> userFound = userRepository.findByEmail(validEmail);
+			Optional<User> userFound = findByEmail(validEmail);
 			// Then
 			assertTrue(userFound.isPresent(), "User should be found by email");
 			assertEquals(validUsername, userFound.get().getUsername(), "Username does not match");
@@ -134,8 +144,8 @@ class UserRepositoryTest {
 		@DisplayName("❌ Negative Case: Return empty when user doesn't exist")
 		void givenNonExistingUser_whenFindByUsernameOrEmail_thenReturnEmpty() {
 			// When
-			Optional<User> byUsername = userRepository.findByUsername("not_found");
-			Optional<User> byEmail = userRepository.findByEmail("not_found@example.com");
+			Optional<User> byUsername = findByUsername("not_found");
+			Optional<User> byEmail = findByEmail("not_found@example.com");
 			// Then
 			assertTrue(byUsername.isEmpty(), "No user should be found by username");
 			assertTrue(byEmail.isEmpty(), "No user should be found by email");

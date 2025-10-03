@@ -14,8 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.xbill.DNS.*;
@@ -35,14 +33,12 @@ public class EmailService {
 	private final JavaMailSender javaMailSender; //INFO - JavaMailSender @Bean is loaded automatically with "spring.mail" properties
 	private final UserRepository userRepository;
 	private final JwtUtils jwtUtils;
-	private final UserDetailsService userDetailsService;
 	private final AccessTokenService accessTokenService;
 
 	@Async
 	public void postEmailVerificationToUser(String userEmail) {
 		//Generate token
 		String token = accessTokenService.generateAccessToken(userEmail);
-
 		//Create email
 		String verifyUrl = VERIFICATION_BASE_URL + URLEncoder.encode(token, StandardCharsets.UTF_8);
 		MimeMessage message = javaMailSender.createMimeMessage();
@@ -58,31 +54,29 @@ public class EmailService {
 			logger.warning("Failed to compose verification email.");
 			throw new IllegalStateException("Failed to compose verification email", e);
 		}
-
 		//Send email
 		javaMailSender.send(message);
 	}
 
 	public ResponseEntity<Map<String, String>> verifyEmail(String jwt) {
-		//Validate jwt
-		String userEmail = jwtUtils.extractEmail(jwt);
-		if(userEmail == null) {
-			logger.warning("Attempted verification with invalid token.");
-			throw new IllegalArgumentException(Messages.TOKEN_INVALID);
-		}
-		UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
-		boolean jwtIsValid = jwtUtils.validateJwt(jwt, userDetails);
-		if(!jwtIsValid) {
+		String jwtUserEmail = jwtUtils.extractSubject(jwt);
+		if(jwtUserEmail == null) {
 			logger.warning("Attempted verification with invalid token.");
 			throw new IllegalArgumentException(Messages.TOKEN_INVALID);
 		}
 
 		//Validate if user exists
-		User user = userRepository.findByEmail(userEmail)
+		User user = userRepository.findByEmail(jwtUserEmail)
 				.orElseThrow(() -> {
 					logger.warning("Verification attempt for non-existing email.");
 					return new UsernameNotFoundException(Messages.EMAIL_INVALID_ERROR);
 				});
+		//Validate jwt
+		boolean jwtIsValid = jwtUtils.validateIfJwtSubjectMatchTheUser(jwtUserEmail, user.getEmail());
+		if(!jwtIsValid) {
+			logger.warning("Attempted verification with token for different user.");
+			throw new IllegalArgumentException(Messages.TOKEN_INVALID);
+		}
 
 		//Check if the email is already verified
 		if(user.isEmailVerified()) {

@@ -1,6 +1,6 @@
 package com.CalisthenicList.CaliList.filter;
 
-import com.CalisthenicList.CaliList.controller.UserController;
+import com.CalisthenicList.CaliList.controller.AuthController;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,7 +38,7 @@ public class UserValidationRateLimitingFilter extends OncePerRequestFilter {
 	//INFO: Rate limit mechanism for every user IP
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse httpResponse,
 									@NonNull FilterChain filterChain) throws ServletException, IOException {
-		if(UserController.loginUrl.equals(request.getRequestURI())) {
+		if(AuthController.loginUrl.equals(request.getRequestURI())) {
 			// Get the client's IP address
 			String clientIp = request.getRemoteAddr();
 			// Initialize the count if the IP is new, otherwise get the current count
@@ -59,6 +59,4 @@ public class UserValidationRateLimitingFilter extends OncePerRequestFilter {
 		}
 		filterChain.doFilter(request, httpResponse);
 	}
-
-
 }

@@ -1,11 +1,10 @@
 package com.CalisthenicList.CaliList.service;
-
 import com.CalisthenicList.CaliList.constants.Messages;
-import com.CalisthenicList.CaliList.constants.UserConstants;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserLoginDTO;
-import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
+import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,218 +12,88 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@RequiredArgsConstructor
 class UserServiceTest {
-
 	@Mock
 	private UserRepository userRepository;
 	@Mock
-	private PasswordEncoder passwordEncoder;
-	@Mock
-	private EmailService emailService;
+	private PasswordEncoder encoder;
 	@InjectMocks
 	private UserService userService;
+	private UserDeleteByIdDTO userDeleteByIdDto;
+	private final UUID userId = UUID.randomUUID();
+	private User user;
 
-	@Nested
-	@DisplayName("registrationService")
-	class RegistrationServiceTest {
-
-		private final String password = "qWBRęLGć8MPł_test";
-		private UserRegistrationDTO userRegistrationDTO;
-
-		@BeforeEach
-		void initEach() {
-			String username = "TestUser";
-			String email = "test@intera.pl";
-			userRegistrationDTO = new UserRegistrationDTO(username, email, password, password);
-			Mockito.when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-			Mockito.when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-			Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(true);
-		}
-
-		@Test
-		@DisplayName("✅ Happy Case: User registered with valid credentials")
-		void givenValidUserDTO_whenRegister_thenReturnUserRegisteredSuccess() {
-			// Given
-			Mockito.when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Registration failed. Code: " + response.getStatusCode());
-			assertEquals(response.getBody(), List.of(Messages.USER_REGISTERED_SUCCESS), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Invalid email dns")
-		void givenInvalidEmailDns_whenRegister_thenReturnEmailInvalidError() {
-			// Given
-			Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(false);
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.EMAIL_INVALID_ERROR), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Already registered email")
-		void givenExistingEmail_whenRegister_thenReturnEmailAlreadyExistError() {
-			// Given
-			Mockito.when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(new User("test", "test", "test")));
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.EMAIL_ALREADY_EXISTS_ERROR), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Already existing username")
-		void givenExistingUsername_whenRegister_thenReturnUsernameAlreadyExistError() {
-			// Given
-			Mockito.when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(new User("test", "test", "test")));
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.USERNAME_ALREADY_EXISTS_ERROR), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Wrong confirm password")
-		void givenWrongConfirmPassword_whenRegister_thenReturnInvalidConfirmPasswordError() {
-			// Given
-			userRegistrationDTO.setConfirmPassword("test");
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.INVALID_CONFIRM_PASSWORD_ERROR), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Wrong confirm password")
-		void givenTooLongPassword_whenRegister_thenReturnInvalidConfirmPasswordError() {
-			// Given
-			userRegistrationDTO.setPassword("a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1));
-			userRegistrationDTO.setConfirmPassword("a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1));
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			assertEquals(response.getBody(), List.of(Messages.INVALID_CONFIRM_PASSWORD_ERROR), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Invalid password encoder")
-		void givenWrongPasswordEncoder_whenRegister_thenReturnServiceError() {
-			// Given
-			Mockito.when(passwordEncoder.encode(password)).thenReturn(password);
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.INTERNAL_SERVER_ERROR), "Should return Internal Server Error.");
-			assertEquals(response.getBody(), List.of(Messages.SERVICE_ERROR), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Multiple errors")
-		void givenAllWrong_whenRegister_thenReturnMultipleErrors() {
-			// Given
-			Mockito.when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(new User("test", "test", "test")));
-			Mockito.when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(new User("test", "test", "test")));
-			Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(false);
-			userRegistrationDTO.setConfirmPassword("test");
-			// When
-			ResponseEntity<List<String>> response = userService.registrationService(userRegistrationDTO);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-			List<String> expectedErrors = List.of(
-					Messages.EMAIL_ALREADY_EXISTS_ERROR, Messages.EMAIL_INVALID_ERROR,
-					Messages.USERNAME_ALREADY_EXISTS_ERROR, Messages.INVALID_CONFIRM_PASSWORD_ERROR
-			);
-			assertEquals(response.getBody(), expectedErrors, "Wrong error message.");
-		}
-
-	}
-
-	@Nested
-	@DisplayName("loginService")
-	class LoginServiceTest {
-
-		private final String password = "qWBRęLGć8MPł_test";
-		private UserLoginDTO userLoginDTO;
-
-		@BeforeEach
-		void initEach() {
-			String email = "test@intera.pl";
-			userLoginDTO = new UserLoginDTO(email, password);
-			Mockito.when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-			Mockito.when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-			Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(true);
-		}
-
-		//@Test
-		//@DisplayName("✅ Happy Case: User registered with valid credentials")
-		//void givenValidUserDTO_whenRegister_thenReturnUserRegisteredSuccess() {
-		//	// Given
-		//	Mockito.when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-		//	// When
-		//	ResponseEntity<List<String>> response = userService.registrationService(userLoginDTO);
-		//	// Then
-		//	System.out.println(response);
-		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Registration failed. Code: " + response.getStatusCode());
-		//	assertEquals(response.getBody(), List.of(Messages.USER_REGISTERED_SUCCESS), "Wrong error message.");
-		//}
-		//
-		//@Test
-		//@DisplayName("❌ Negative Case: Invalid email dns")
-		//void givenInvalidEmailDns_whenRegister_thenReturnEmailInvalidError() {
-		//	// Given
-		//	Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(false);
-		//	// When
-		//	ResponseEntity<List<String>> response = userService.registrationService(userLoginDTO);
-		//	// Then
-		//	System.out.println(response);
-		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-		//	assertEquals(response.getBody(), List.of(Messages.EMAIL_INVALID_ERROR), "Wrong error message.");
-		//}
-
-
+	@BeforeEach
+	void setUp() {
+		userDeleteByIdDto = new UserDeleteByIdDTO();
+		userDeleteByIdDto.setUserId(userId);
+		userDeleteByIdDto.setPassword("rawPassword");
+		user = new User();
+		user.setId(userId);
+		user.setPassword("encodedPassword");
 	}
 
 	@Nested
 	@DisplayName("deleteUserById")
 	class DeleteUserByIdTest {
-		private String deleteUserUrl;
 
-//				@BeforeEach
-//				void initAll() {
-//					deleteUserUrl = "http://localhost:" + port + "/delete/";
-//					user = new User();
-//				}
-		//		TODO DO zrobienia testy
-		//		testRestTemplate.delete(deleteUserUrl + createdUser.getId());
+		private ResponseEntity<ApiResponse<Object>> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
+			return userService.deleteUserById(userDeleteByIdDto);
+		}
+
+		@Test
+		@DisplayName("✅ Happy Case: Delete user successfully")
+		void givenValidUserAndPassword_whenDeleteUser_thenReturnOk() {
+			// Given
+			when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+			when(encoder.matches("rawPassword", "encodedPassword")).thenReturn(true);
+			// When
+			ResponseEntity<ApiResponse<Object>> response = deleteUserById(userDeleteByIdDto);
+			// Then
+			assertEquals(HttpStatus.OK, response.getStatusCode());
+			assertNotNull(response.getBody());
+			assertEquals(Messages.USER_DELETED, response.getBody().getMessage());
+			verify(userRepository).delete(user);
+		}
+
+		@Test
+		@DisplayName("❌ Negative Case: User not found")
+		void givenNonExistingUser_whenDeleteUser_thenThrowUsernameNotFoundException() {
+			// Given
+			when(userRepository.findById(userId)).thenReturn(Optional.empty());
+			// When Then
+			UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,
+					() -> deleteUserById(userDeleteByIdDto));
+			assertEquals(Messages.SERVICE_ERROR, exception.getMessage());
+			verify(userRepository, never()).delete(any());
+		}
+
+		@Test
+		@DisplayName("❌ Negative Case: Invalid password")
+		void givenWrongPassword_whenDeleteUser_thenThrowBadCredentialsException() {
+			// Given
+			when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+			when(encoder.matches("rawPassword", "encodedPassword")).thenReturn(false);
+			// When Then
+			BadCredentialsException exception = assertThrows(BadCredentialsException.class,
+					() -> deleteUserById(userDeleteByIdDto));
+			assertEquals(Messages.SERVICE_ERROR, exception.getMessage());
+			verify(userRepository, never()).delete(any());
+		}
 	}
 }

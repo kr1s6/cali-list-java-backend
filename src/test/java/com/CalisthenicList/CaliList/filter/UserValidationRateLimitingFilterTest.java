@@ -1,11 +1,14 @@
 package com.CalisthenicList.CaliList.filter;
 
+import com.CalisthenicList.CaliList.controller.AuthController;
+import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -18,6 +21,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,72 +43,104 @@ public class UserValidationRateLimitingFilterTest {
 		httpResponse = mock(HttpServletResponse.class);
 		filterChain = mock(FilterChain.class);
 		maxRequestsPerMinute = filter.MAX_HEAVY_REQUESTS_PER_MINUTE;
-		when(request.getRemoteAddr()).thenReturn("127.0.0.1");
 	}
 
-	@Test
-	@DisplayName("✅ Happy Case: Allows requests when count is below limit")
-	void givenMaxAmountOfRequests_whenDoFilter_thenPasses() throws ServletException, IOException {
-		// When
-		for(int i = 0; i < maxRequestsPerMinute; i++) {
-			filter.doFilterInternal(request, httpResponse, filterChain);
-		}
-		// Then
-		assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.1"));
-		verify(filterChain, times(maxRequestsPerMinute)).doFilter(request, httpResponse);
-		verify(httpResponse, Mockito.never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+	private void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse httpResponse,
+								  @NonNull FilterChain filterChain) throws ServletException, IOException {
+		filter.doFilterInternal(request, httpResponse, filterChain);
 	}
 
-	@Test
-	@DisplayName("❌ Negative Case: Block coming requests after reaching requests limit.")
-	void givenRequestsOverLimit_whenDoFilter_thenReturnsTooManyRequestsError() throws ServletException, IOException {
-		// Given
-		StringWriter stringWriter = new StringWriter();
-		when(httpResponse.getWriter()).thenReturn(new PrintWriter(stringWriter));
-		int requestsOverLimit = maxRequestsPerMinute + 1;
-		// When
-		for(int i = 0; i < requestsOverLimit; i++) {
-			filter.doFilterInternal(request, httpResponse, filterChain);
+	@Nested
+	@DisplayName("For other urls")
+	class ForOtherUrls {
+		@Test
+		@DisplayName("✅ Happy Case: Should not rate-limit when request URI is different from loginUrl")
+		void givenOtherUrl_whenDoFilter_thenNotCountedAndAlwaysPasses() throws ServletException, IOException {
+			// Given
+			when(request.getRequestURI()).thenReturn("/api/other-endpoint");
+			// When
+			for(int i = 0; i < maxRequestsPerMinute * 2; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			// Then
+			assertNull(filter.requestCounts.get("127.0.0.1"), "Request count should not be tracked for other URLs");
+			verify(filterChain, times(maxRequestsPerMinute * 2)).doFilter(request, httpResponse);
+			verify(httpResponse, never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
 		}
-		// Then
-		verify(httpResponse, times(1)).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-		assertEquals("Too many requests. Please try again later.", stringWriter.toString());
 	}
 
+	@Nested
+	@DisplayName("For loginUrl")
+	class ForLoginUrl {
+		@BeforeEach
+		void initEach() {
+			when(request.getRequestURI()).thenReturn(AuthController.loginUrl);
+			when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+		}
 
-	@Test
-	@DisplayName("✅ Happy Case: Reset request limit after refill period.")
-	void givenMaxAmountOfRequests_whenWaitRefillPeriod_thenRefillRequestAmount() throws ServletException, IOException {
-		// Given
-		for(int i = 0; i < maxRequestsPerMinute; i++) {
-			filter.doFilterInternal(request, httpResponse, filterChain);
+		@Test
+		@DisplayName("✅ Happy Case: Allows requests when count is below limit")
+		void givenMaxAmountOfRequests_whenDoFilter_thenPasses() throws ServletException, IOException {
+			// When
+			for(int i = 0; i < maxRequestsPerMinute; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			// Then
+			assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.1"));
+			verify(filterChain, times(maxRequestsPerMinute)).doFilter(request, httpResponse);
+			verify(httpResponse, Mockito.never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
 		}
-		assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.1"));
-		// When
-		filter.rateLimitingTimer();
-		for(int i = 0; i < maxRequestsPerMinute; i++) {
-			filter.doFilterInternal(request, httpResponse, filterChain);
-		}
-		// Then
-		verify(filterChain, times(maxRequestsPerMinute * 2)).doFilter(request, httpResponse);
-		verify(httpResponse, Mockito.never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-	}
 
-	@Test
-	@DisplayName("✅ Happy Case: User2 is not rate-limited when User1 reaches the limit.")
-	void givenUser1AtLimit_whenUser2SendsRequests_thenUser2IsUnaffected() throws ServletException, IOException {
-		// Given
-		for(int i = 0; i < maxRequestsPerMinute; i++) {
-			filter.doFilterInternal(request, httpResponse, filterChain);
+		@Test
+		@DisplayName("❌ Negative Case: Block coming requests after reaching requests limit.")
+		void givenRequestsOverLimit_whenDoFilter_thenReturnsTooManyRequestsError() throws ServletException, IOException {
+			// Given
+			StringWriter stringWriter = new StringWriter();
+			when(httpResponse.getWriter()).thenReturn(new PrintWriter(stringWriter));
+			int requestsOverLimit = maxRequestsPerMinute + 1;
+			// When
+			for(int i = 0; i < requestsOverLimit; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			// Then
+			verify(httpResponse, times(1)).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+			assertEquals("Too many requests. Please try again later.", stringWriter.toString());
 		}
-		when(request.getRemoteAddr()).thenReturn("127.0.0.2");
-		// When
-		for(int i = 0; i < maxRequestsPerMinute; i++) {
-			filter.doFilterInternal(request, httpResponse, filterChain);
+
+		@Test
+		@DisplayName("✅ Happy Case: Reset request limit after refill period.")
+		void givenMaxAmountOfRequests_whenWaitRefillPeriod_thenRefillRequestAmount() throws ServletException, IOException {
+			// Given
+			for(int i = 0; i < maxRequestsPerMinute; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.1"));
+			// When
+			filter.rateLimitingTimer();
+			for(int i = 0; i < maxRequestsPerMinute; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			// Then
+			verify(filterChain, times(maxRequestsPerMinute * 2)).doFilter(request, httpResponse);
+			verify(httpResponse, Mockito.never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
 		}
-		// Then
-		assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.1"));
-		assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.2"));
-		verify(httpResponse, Mockito.never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+
+		@Test
+		@DisplayName("✅ Happy Case: User2 is not rate-limited when User1 reaches the limit.")
+		void givenUser1AtLimit_whenUser2SendsRequests_thenUser2IsUnaffected() throws ServletException, IOException {
+			// Given
+			for(int i = 0; i < maxRequestsPerMinute; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			when(request.getRemoteAddr()).thenReturn("127.0.0.2");
+			// When
+			for(int i = 0; i < maxRequestsPerMinute; i++) {
+				doFilterInternal(request, httpResponse, filterChain);
+			}
+			// Then
+			assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.1"));
+			assertEquals(maxRequestsPerMinute, filter.requestCounts.get("127.0.0.2"));
+			verify(httpResponse, Mockito.never()).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+		}
 	}
 }

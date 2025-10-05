@@ -1,20 +1,16 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Encoders;
-import io.jsonwebtoken.security.SignatureException;
+import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
+import com.CalisthenicList.CaliList.utils.JwtUtils;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -26,15 +22,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 
-import javax.crypto.SecretKey;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -47,29 +38,36 @@ class EmailServiceTest {
 	private JavaMailSender javaMailSender;
 	@Mock
 	private UserRepository userRepository;
+	@Mock
+	private AccessTokenService accessTokenService;
+	@Mock
+	private JwtUtils jwtUtils;
 	@InjectMocks
 	private EmailService emailService;
 
+	private Optional<User> findByEmail(String email) {
+		return userRepository.findByEmail(email);
+	}
+
 	@Test
-	@DisplayName("✅ Happy Case: Verification token has expected values.")
+	@DisplayName("✅ Happy Case: Verification email is composed and sent correctly.")
 	void postEmailVerificationToUserTest() throws Exception {
 		// Given
-		UUID userId = UUID.randomUUID();
 		String userEmail = "test@exmaple.com";
 		String token = "header.payload.signature";
 		MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
+		Mockito.when(accessTokenService.generateAccessToken(anyString())).thenReturn(token);
 		when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-		EmailService emailService = spy(new EmailService(javaMailSender, userRepository));
-		doReturn(token).when(emailService).createVerificationTokenWithId(userId);
+		EmailService spyService = spy(this.emailService);
 		// When
-		emailService.postEmailVerificationToUser(userId, userEmail);
+		spyService.postEmailVerificationToUser(userEmail);
 		// Then
 		verify(javaMailSender).send(mimeMessage);
 		InternetAddress from = new InternetAddress("no-reply@CaliList.com", "CaliList");
 		assertEquals(from, mimeMessage.getFrom()[0], "Wrong email sender.");
 		assertEquals(userEmail, mimeMessage.getAllRecipients()[0].toString(), "Wrong email recipient.");
 		assertEquals("Email verification", mimeMessage.getSubject(), "Wrong email subject.");
-		String verifyUrl = emailService.VERIFICATION_BASE_URL + URLEncoder.encode(token, StandardCharsets.UTF_8);
+		String verifyUrl = spyService.VERIFICATION_BASE_URL + URLEncoder.encode(token, StandardCharsets.UTF_8);
 		String expectedContent = "Click below to verify your email:\n" + verifyUrl;
 		assertEquals(expectedContent, mimeMessage.getContent().toString(), "Wrong email content.");
 	}
@@ -78,12 +76,16 @@ class EmailServiceTest {
 	@DisplayName("dnsEmailLookup")
 	class DnsEmailLookupTest {
 
+		private boolean dnsEmailLookup(String email) {
+			return emailService.dnsEmailLookup(email);
+		}
+
 		@DisplayName("✅ Happy Case: Valid email domain.")
 		@ParameterizedTest(name = "Valid domain: \"{0}\"")
 		@ValueSource(strings = {"test@gmail.com", "test@icloud.com", "test@outlook.com", "test@yahoo.com"})
 		void givenValidEmailDomain_whenDnsEmailLookup_thenReturnTrue(String email) {
 			// When
-			boolean isValidEmailDomain = emailService.dnsEmailLookup(email);
+			boolean isValidEmailDomain = dnsEmailLookup(email);
 			// Then
 			assertTrue(isValidEmailDomain, "Domain should be valid.");
 		}
@@ -93,165 +95,68 @@ class EmailServiceTest {
 		@ValueSource(strings = {"test@example.com", "test@gmial.com", "test@notarealdomain.fake"})
 		void givenInvalidEmailDomain_whenDnsEmailLookup_thenReturnFalse(String email) {
 			// When
-			boolean isValidEmailDomain = emailService.dnsEmailLookup(email);
+			boolean isValidEmailDomain = dnsEmailLookup(email);
 			// Then
 			assertFalse(isValidEmailDomain, "Domain should be invalid.");
 		}
 	}
 
 	@Nested
-	@DisplayName("createVerificationTokenWithId")
-	class CreateVerificationTokenWithIdTest {
-
-		private final CharSequence testSecretKey = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
-		private EmailService emailServiceSpy;
-
-		@BeforeEach
-		void initEach() {
-			emailServiceSpy = spy(new EmailService(javaMailSender, userRepository));
-		}
-
-		@Test
-		@DisplayName("✅ Happy Case: Verification token has expected claims.")
-		void givenUserId_whenCreateVerificationToken_thenTokenHasExpectedClaims() {
-			// Given
-			SecretKey encodedSecretKey = emailServiceSpy.getSecretKey(testSecretKey);
-			doReturn(encodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			UUID userId = UUID.randomUUID();
-			// When
-			String token = emailServiceSpy.createVerificationTokenWithId(userId);
-			Claims claims = Jwts.parser().verifyWith(encodedSecretKey).build().parseSignedClaims(token).getPayload();
-			// Then
-			assertEquals(claims.getSubject(), userId.toString(), "Wrong token subject.");
-			Date shortAfterExpirationTime = Date.from(Instant.now().plus(Duration.ofHours(emailServiceSpy.TokenExpirationTimeHours)));
-			Date shortBeforeExpirationTime = Date.from(Instant.now().plus(Duration.ofHours(emailServiceSpy.TokenExpirationTimeHours)).minus(Duration.ofMinutes(1)));
-			assertTrue(claims.getExpiration().before(shortAfterExpirationTime), "Token expiration time is too long.");
-			assertTrue(claims.getExpiration().after(shortBeforeExpirationTime), "Token expiration time is too short.");
-			assertTrue(claims.getIssuedAt().before(Date.from(Instant.now())), "Token issued time is in the future.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative case: Verification token has invalid secret key.")
-		void givenInvalidSecretKey_whenParseVerificationToken_thenThrowsSignatureException() {
-			//Given
-			CharSequence wrongSecretKey = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
-			SecretKey validEncodedSecretKey = emailServiceSpy.getSecretKey(testSecretKey);
-			SecretKey invalidEncodedSecretKey = emailServiceSpy.getSecretKey(wrongSecretKey);
-			doReturn(invalidEncodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			UUID userId = UUID.randomUUID();
-			// When
-			String token = emailServiceSpy.createVerificationTokenWithId(userId);
-			//Then
-			SignatureException thrown = assertThrows(SignatureException.class, () -> Jwts.parser().verifyWith(validEncodedSecretKey).build().parseSignedClaims(token).getPayload(), "Verification passed with invalid secret key.");
-			System.out.println("Caught exception: " + thrown);
-		}
-	}
-
-	@Nested
 	@DisplayName("verifyEmail")
 	class VerifyEmailTest {
+		private final String jwtToken = "header.payload.signature";
+		private final String userEmail = "test@example.com";
+		private User testUser;
 
-		private final CharSequence testSecretKey = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
-		private final UUID userId = UUID.randomUUID();
-		private SecretKey encodedSecretKey;
-		private EmailService emailServiceSpy;
+		private ResponseEntity<ApiResponse<Object>> verifyEmail() {
+			return emailService.verifyEmail(jwtToken);
+		}
 
 		@BeforeEach
 		void initEach() {
-			// Given
-			encodedSecretKey = emailService.getSecretKey(testSecretKey);
-			emailServiceSpy = spy(new EmailService(javaMailSender, userRepository));
+			testUser = new User("testUser", userEmail, "encodedPassword");
+			testUser.setEmailVerified(false);
+			emailService = spy(emailService);
 		}
 
 		@Test
-		@DisplayName("✅ Happy Case: Valid email verification.")
-		void givenValidToken_whenVerifyEmail_thenReturnEmailVerificationSuccess() {
+		@DisplayName("✅ Happy Case: Email verified successfully.")
+		void givenValidJwt_whenVerifyEmail_thenReturnAccepted() {
 			// Given
-			doReturn(encodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(new User("test", "test", "test")));
-			String token = emailServiceSpy.createVerificationTokenWithId(userId);
+			when(jwtUtils.extractSubject(jwtToken)).thenReturn(userEmail);
+			when(findByEmail(userEmail)).thenReturn(Optional.of(testUser));
+			when(jwtUtils.validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
 			// When
-			ResponseEntity<String> response = emailServiceSpy.verifyEmail(token);
+			ResponseEntity<ApiResponse<Object>> response = verifyEmail();
 			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.ACCEPTED), "Should return Accepted.");
-			assertEquals(Messages.EMAIL_VERIFICATION_SUCCESS, response.getBody(), "Wrong error message.");
+			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode(), "Should return ACCEPTED");
+			Assertions.assertNotNull(response.getBody());
+			assertEquals(Messages.EMAIL_VERIFICATION_SUCCESS, response.getBody().getMessage(), "Wrong success message");
+			assertTrue(testUser.isEmailVerified(), "User email should be marked as verified");
+			verify(userRepository).save(testUser);
 		}
 
 		@Test
-		@DisplayName("❌ Negative Case: Expired token.")
-		void givenExpiredToken_whenVerifyEmail_thenReturnTokenExpiredError() {
-			// When
-			doReturn(encodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			Instant issuedAtDate = Instant.now().minus(Duration.ofHours(2));
-			String expiredToken = custom_createVerificationTokenWithId(userId, issuedAtDate);
-			ResponseEntity<String> response = emailServiceSpy.verifyEmail(expiredToken);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
-			assertEquals(Messages.TOKEN_EXPIRED, response.getBody(), "Wrong error message.");
-		}
-
-		private String custom_createVerificationTokenWithId(UUID userId, Instant issuedAtDate) {
-			Date issuedAt = Date.from(issuedAtDate);
-			Date expiration = Date.from(issuedAtDate.plus(Duration.ofHours(emailService.TokenExpirationTimeHours)));
-			SecretKey key = emailService.getSecretKey(testSecretKey);
-			return Jwts.builder()
-					.subject(String.valueOf(userId)).
-					issuedAt(issuedAt).expiration(expiration).
-					signWith(key, Jwts.SIG.HS256)
-					.compact();
+		@DisplayName("❌ Negative case: Invalid token.")
+		void givenInvalidJwt_whenVerifyEmail_thenThrowIllegalArgumentException() {
+			// Given
+			when(jwtUtils.extractSubject(jwtToken)).thenReturn(null);
+			// When & Then
+			IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, this::verifyEmail);
+			assertEquals(Messages.TOKEN_INVALID, ex.getMessage());
 		}
 
 		@Test
-		@DisplayName("❌ Negative Case: Invalid token.")
-		void givenInvalidToken_whenVerifyEmail_thenReturnTokenInvalidError() {
+		@DisplayName("❌ Negative Case: Email already verified")
+		void givenAlreadyVerifiedUser_whenVerifyEmail_thenThrowIllegalStateException() {
 			// Given
-			doReturn(encodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			String token = "invalid-token";
-			// When
-			ResponseEntity<String> response = emailServiceSpy.verifyEmail(token);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
-			assertEquals(Messages.TOKEN_INVALID, response.getBody(), "Wrong error message.");
-		}
-
-		@Test
-		@DisplayName("❌ Negative Case: Invalid secret key.")
-		void givenTokenWithInvalidSecretKey_whenVerifyEmail_thenReturnTokenInvalidError() {
-			// Given
-			// Create a token with a wrong secret key
-			CharSequence wrongSecretKey = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
-			SecretKey wrongEncodedSecretKey = emailService.getSecretKey(wrongSecretKey);
-			doReturn(wrongEncodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			String invalidToken = emailServiceSpy.createVerificationTokenWithId(userId);
-			// Insert valid secret key for function
-			doReturn(encodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			// When
-			ResponseEntity<String> response = emailServiceSpy.verifyEmail(invalidToken);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
-			assertEquals(Messages.TOKEN_INVALID, response.getBody(), "Wrong error message.");
-		}
-
-
-		@Test
-		@DisplayName("❌ Negative Case: Email already verified.")
-		void givenAlreadyVerifiedUserToken_whenVerifyEmail_thenReturnEmailAlreadyVerified() {
-			// Given
-			doReturn(encodedSecretKey).when(emailServiceSpy).getSecretKey(Mockito.any());
-			User alreadyVerifiedUser = new User("test", "test", "test");
-			alreadyVerifiedUser.setEmailVerified(true);
-			Mockito.when(userRepository.findById(userId)).thenReturn(Optional.of(alreadyVerifiedUser));
-			String token = emailServiceSpy.createVerificationTokenWithId(userId);
-			// When
-			ResponseEntity<String> response = emailServiceSpy.verifyEmail(token);
-			// Then
-			System.out.println(response);
-			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.ALREADY_REPORTED), "Should return Already Reported.");
-			assertEquals(Messages.EMAIL_ALREADY_VERIFIED, response.getBody(), "Wrong message.");
+			testUser.setEmailVerified(true);
+			when(jwtUtils.extractSubject(jwtToken)).thenReturn(userEmail);
+			when(findByEmail(userEmail)).thenReturn(Optional.of(testUser));
+			when(jwtUtils.validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
+			// When & Then
+			IllegalStateException ex = assertThrows(IllegalStateException.class, this::verifyEmail);
+			assertEquals(Messages.EMAIL_ALREADY_VERIFIED, ex.getMessage());
 		}
 	}
 }

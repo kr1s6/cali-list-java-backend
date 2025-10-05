@@ -1,5 +1,6 @@
 package com.CalisthenicList.CaliList.service;
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
@@ -21,8 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,7 +52,7 @@ class UserServiceTest {
 	@DisplayName("deleteUserById")
 	class DeleteUserByIdTest {
 
-		private ResponseEntity<String> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
+		private ResponseEntity<ApiResponse<Object>> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
 			return userService.deleteUserById(userDeleteByIdDto);
 		}
 
@@ -63,10 +63,11 @@ class UserServiceTest {
 			when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 			when(encoder.matches("rawPassword", "encodedPassword")).thenReturn(true);
 			// When
-			ResponseEntity<String> response = deleteUserById(userDeleteByIdDto);
+			ResponseEntity<ApiResponse<Object>> response = deleteUserById(userDeleteByIdDto);
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
-			assertEquals("User deleted successfully", response.getBody());
+			assertNotNull(response.getBody());
+			assertEquals(Messages.USER_DELETED, response.getBody().getMessage());
 			verify(userRepository).delete(user);
 		}
 

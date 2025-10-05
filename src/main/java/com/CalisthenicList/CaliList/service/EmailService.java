@@ -1,6 +1,7 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
@@ -58,7 +59,7 @@ public class EmailService {
 		javaMailSender.send(message);
 	}
 
-	public ResponseEntity<Map<String, String>> verifyEmail(String jwt) {
+	public ResponseEntity<ApiResponse<Object>> verifyEmail(String jwt) {
 		String jwtUserEmail = jwtUtils.extractSubject(jwt);
 		if(jwtUserEmail == null) {
 			logger.warning("Attempted verification with invalid token.");
@@ -80,16 +81,20 @@ public class EmailService {
 
 		//Check if the email is already verified
 		if(user.isEmailVerified()) {
-			logger.warning("Attempted verification of already verified email.");
+			logger.warning(Messages.EMAIL_ALREADY_VERIFIED);
 			throw new IllegalStateException(Messages.EMAIL_ALREADY_VERIFIED);
 		}
 
 		//Set email verification to true
 		user.setEmailVerified(true);
 		userRepository.save(user);
-		logger.info("Email verified successfully.");
-		Map<String, String> responseMessage = Map.of("message", Messages.EMAIL_VERIFICATION_SUCCESS);
-		return new ResponseEntity<>(responseMessage, HttpStatus.ACCEPTED);
+		logger.info(Messages.EMAIL_VERIFICATION_SUCCESS);
+		return ResponseEntity.status(HttpStatus.ACCEPTED).body(
+				ApiResponse.builder()
+						.success(true)
+						.message(Messages.EMAIL_VERIFICATION_SUCCESS)
+						.build()
+		);
 	}
 
 	//Validate if email has proper domain

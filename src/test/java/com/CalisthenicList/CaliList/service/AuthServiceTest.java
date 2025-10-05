@@ -1,11 +1,9 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.enums.Roles;
 import com.CalisthenicList.CaliList.exceptions.UserRegistrationException;
-import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserAuthResponseDTO;
-import com.CalisthenicList.CaliList.model.UserLoginDTO;
-import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
+import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
@@ -70,7 +68,7 @@ class AuthServiceTest {
 		private final String password = "qWBRęLGć8MPł_test";
 		private UserRegistrationDTO userRegistrationDTO;
 
-		private ResponseEntity<UserAuthResponseDTO> registerUser(UserRegistrationDTO userRegistrationDTO, MockHttpServletResponse mockResponse) {
+		private ResponseEntity<ApiResponse<Object>> registerUser(UserRegistrationDTO userRegistrationDTO, MockHttpServletResponse mockResponse) {
 			return authService.registerUser(userRegistrationDTO, mockResponse);
 		}
 
@@ -102,15 +100,14 @@ class AuthServiceTest {
 					.thenReturn(ResponseCookie.from("refreshToken", fakeRefreshToken).build());
 			Mockito.when(generateAccessToken(anyString())).thenReturn(fakeAccessToken);
 			// When
-			ResponseEntity<UserAuthResponseDTO> response = registerUser(userRegistrationDTO, mockResponse);
+			ResponseEntity<ApiResponse<Object>> response = registerUser(userRegistrationDTO, mockResponse);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Registration should return CREATED");
-			assertNotNull(response.getBody());
-			//Validate message
-			UserAuthResponseDTO dto = response.getBody();
-			assertEquals(Messages.USER_REGISTERED_SUCCESS, dto.getMessage().get("message"), "Wrong success message");
-			//Validate access token
-			assertEquals(fakeAccessToken, dto.getAccessToken(), "Access token not returned properly");
+			ApiResponse<Object> responseBody = response.getBody();
+			assertNotNull(responseBody);
+			assertTrue(responseBody.isSuccess(), "Response should be successful.");
+			assertEquals(Messages.USER_REGISTERED_SUCCESS, responseBody.getMessage(), "Wrong message.");
+			assertEquals(fakeAccessToken, responseBody.getAccessToken(), "Access token not returned properly");
 			//Validate refresh token in cookies
 			String setCookieHeader = mockResponse.getHeader(HttpHeaders.SET_COOKIE);
 			assertNotNull(setCookieHeader, "Refresh token cookie should be set");
@@ -214,7 +211,7 @@ class AuthServiceTest {
 		private UserLoginDTO userLoginDTO;
 		private String password;
 
-		private ResponseEntity<UserAuthResponseDTO> loginUser(UserLoginDTO userLoginDTO, HttpServletResponse response) {
+		private ResponseEntity<ApiResponse<Object>> loginUser(UserLoginDTO userLoginDTO, HttpServletResponse response) {
 			return authService.loginUser(userLoginDTO, response);
 		}
 
@@ -237,11 +234,10 @@ class AuthServiceTest {
 					ResponseCookie.from("refreshToken", "dummyToken").httpOnly(true).build());
 			Mockito.when(generateAccessToken(anyString())).thenReturn("dummyAccessToken");
 			// When
-			ResponseEntity<UserAuthResponseDTO> response = loginUser(userLoginDTO, mockResponse);
+			ResponseEntity<ApiResponse<Object>> response = loginUser(userLoginDTO, mockResponse);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.OK), "Login failed");
 			assertNotNull(response.getBody());
-			assertEquals(Messages.LOGIN_SUCCESS, response.getBody().getMessage().get("message"), "Wrong success message");
 			assertEquals("dummyAccessToken", response.getBody().getAccessToken(), "Access token mismatch");
 		}
 

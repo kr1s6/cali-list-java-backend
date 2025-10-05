@@ -1,5 +1,6 @@
 package com.CalisthenicList.CaliList.exceptions;
 
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,37 +20,63 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 	private static final Logger logger = Logger.getLogger(GlobalExceptionHandler.class.getName());
 
-	//Handle errors during login
-	@ExceptionHandler(UsernameNotFoundException.class)
-	public ResponseEntity<Map<String, String>> handleUserNotFound(UsernameNotFoundException ex) {
-		logger.log(Level.WARNING, ex.getMessage(), ex); Map<String, String> error = Map.of("error", ex.getMessage());
-		return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+	@ExceptionHandler(UserRegistrationException.class)
+	public ResponseEntity<ApiResponse<Object>> handleUserRegistration(UserRegistrationException ex) {
+		logger.log(Level.WARNING, ex.getMessage(), ex);
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(
+				ApiResponse.builder()
+						.success(false)
+						.message(ex.getMessage())
+						.data(ex.getErrors())
+						.build()
+		);
 	}
 
-	@ExceptionHandler(UserRegistrationException.class)
-	public ResponseEntity<Map<String, Map<String, String>>> handleUserRegistration(UserRegistrationException ex) {
+	//Handle errors during login
+	@ExceptionHandler(UsernameNotFoundException.class)
+	public ResponseEntity<ApiResponse<Object>> handleUserNotFound(UsernameNotFoundException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
-		return new ResponseEntity<>(Map.of("errors", ex.getErrors()), HttpStatus.CONFLICT);
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+				ApiResponse.builder()
+						.success(false)
+						.message(ex.getMessage())
+						.build()
+		);
 	}
 
 	//Handle errors thrown by @Valid annotation
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<Map<String, List<String>>> handleValidationErrors(MethodArgumentNotValidException ex) {
+	public ResponseEntity<ApiResponse<Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
-		List<String> errors = ex.getBindingResult().getFieldErrors().stream().map(FieldError::getDefaultMessage).collect(Collectors.toList());
-		return new ResponseEntity<>(getErrorsMap(errors), HttpStatus.BAD_REQUEST);
+		List<String> errors = ex.getBindingResult()
+				.getFieldErrors()
+				.stream()
+				.map(FieldError::getDefaultMessage)
+				.collect(Collectors.toList());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+				ApiResponse.builder()
+						.success(false)
+						.message("Validation failed.")
+						.data(errors)
+						.build()
+		);
 	}
 
 	//Handle unexpected errors and INTERNAL_SERVER_ERRORS
 	@ExceptionHandler(Exception.class)
-	public ResponseEntity<Map<String, String>> handleUnpredictedExceptions(Exception ex) {
+	public ResponseEntity<ApiResponse<Object>> handleUnpredictedExceptions(Exception ex) {
 		logger.log(Level.SEVERE, ex.getMessage(), ex);
-		Map<String, String> error = Map.of("error", "An unexpected error occurred: " + ex.getMessage());
-		return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+				ApiResponse.builder()
+						.success(false)
+						.message(ex.getMessage())
+						.build()
+		);
 	}
 
 	private Map<String, List<String>> getErrorsMap(List<String> errors) {
-		Map<String, List<String>> errorResponse = new HashMap<>(); errorResponse.put("errors", errors);
+		Map<String, List<String>> errorResponse = new HashMap<>();
+		errorResponse.put("errors", errors);
 		return errorResponse;
 	}
 }

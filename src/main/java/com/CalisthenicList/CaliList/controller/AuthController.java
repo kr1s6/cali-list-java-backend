@@ -1,6 +1,6 @@
 package com.CalisthenicList.CaliList.controller;
 
-import com.CalisthenicList.CaliList.model.UserAuthResponseDTO;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.UserLoginDTO;
 import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.service.AuthService;
@@ -11,8 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,7 +26,7 @@ public class AuthController {
 
 	@PostMapping(registerUrl)
 	//INFO registration request require Unique username, Unique email, password
-	public ResponseEntity<UserAuthResponseDTO> registerUser(@Valid @RequestBody UserRegistrationDTO userDto,
+	public ResponseEntity<ApiResponse<Object>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto,
 															HttpServletResponse response) {
 		return authService.registerUser(userDto, response);
 //        TODO
@@ -37,7 +35,7 @@ public class AuthController {
 
 	@PostMapping(loginUrl)
 	//INFO login request require email and password
-	public ResponseEntity<UserAuthResponseDTO> loginUser(@Valid @RequestBody UserLoginDTO userLoginDTO,
+	public ResponseEntity<ApiResponse<Object>> loginUser(@Valid @RequestBody UserLoginDTO userLoginDTO,
 														 HttpServletResponse response) {
 		return authService.loginUser(userLoginDTO, response);
 //        TODO
@@ -45,13 +43,13 @@ public class AuthController {
 	}
 
 	@PostMapping(logoutUrl)
-	public ResponseEntity<?> logoutUser(@CookieValue(name = "refreshToken", required = false) String refreshToken,
-										HttpServletResponse response) {
+	public ResponseEntity<ApiResponse<Object>> logoutUser(@CookieValue(name = "refreshToken", required = false) String refreshToken,
+														  HttpServletResponse response) {
 		return authService.logoutUser(refreshToken, response);
 	}
 
 	@GetMapping(emailVerificationUrl)
-	public ResponseEntity<Map<String, String>> verifyEmail(@PathVariable("token") String token) {
+	public ResponseEntity<ApiResponse<Object>> verifyEmail(@PathVariable("token") String token) {
 		return emailService.verifyEmail(token);
 //		TODO - w Gmailu/Google Workspace skonfigurujesz i zweryfikujesz alias „Send mail as”
 //				(Wyślij jako) dla tego adresu, łącznie z poprawnym SPF/DKIM/DMARC dla domeny

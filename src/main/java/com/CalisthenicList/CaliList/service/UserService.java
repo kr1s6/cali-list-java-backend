@@ -1,6 +1,7 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
@@ -22,7 +23,7 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final PasswordEncoder encoder;
 
-	public ResponseEntity<String> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
+	public ResponseEntity<ApiResponse<Object>> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
 		UUID id = userDeleteByIdDto.getUserId();
 		//Validate if user exists
 		User user = userRepository.findById(id)
@@ -39,7 +40,12 @@ public class UserService {
 		}
 		//Delete user
 		userRepository.delete(user);
-		logger.info("User deleted successfully.");
-		return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
+		logger.info(Messages.USER_DELETED);
+		return ResponseEntity.ok(
+				ApiResponse.builder()
+						.success(true)
+						.message(Messages.USER_DELETED)
+						.build()
+		);
 	}
 }

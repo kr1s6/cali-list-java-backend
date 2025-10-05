@@ -30,5 +30,8 @@ public final class Messages {
 	public static final String USER_NOT_FOUND = "User not found.";
 	public static final String UNAUTHORIZED = "Error: Unauthorized";
 	public static final String USER_REGISTERED_SUCCESS = "User registered successfully.";
+	public static final String USER_REGISTERED_FAILED = "User registration failed.";
 	public static final String LOGIN_SUCCESS = "Login successful.";
+	public static final String USER_DELETED = "User deleted successfully";
+
 }

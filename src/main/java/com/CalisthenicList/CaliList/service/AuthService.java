@@ -2,10 +2,7 @@ package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.exceptions.UserRegistrationException;
-import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserAuthResponseDTO;
-import com.CalisthenicList.CaliList.model.UserLoginDTO;
-import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
+import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
@@ -34,15 +31,15 @@ public class AuthService {
 	private final RefreshTokenService refreshTokenService;
 	private final AccessTokenService accessTokenService;
 
-	public ResponseEntity<UserAuthResponseDTO> registerUser(UserRegistrationDTO userDto, HttpServletResponse response) {
+	public ResponseEntity<ApiResponse<Object>> registerUser(UserRegistrationDTO userDto, HttpServletResponse response) {
 		//Validate user input
 		handleRegistrationErrors(userDto);
 		//Encode password
 		String rawPassword = userDto.getPassword();
 		String encodedPassword = encoder.encode(rawPassword);
 		if(encodedPassword.equals(rawPassword)) {
-			logger.warning("Password encoding failed.");
-			throw new RuntimeException(Messages.SERVICE_ERROR);
+			logger.severe("Password encoding failed.");
+			throw new RuntimeException("Password encoding failed.");
 		}
 
 		//Save user to DB
@@ -60,15 +57,27 @@ public class AuthService {
 		//Send Async email verification
 		emailService.postEmailVerificationToUser(userEmail);
 
-		//Return response with jwt
-		Map<String, String> responseMessage = Map.of("message", Messages.USER_REGISTERED_SUCCESS);
-		UserAuthResponseDTO responseDTO = new UserAuthResponseDTO(responseMessage, accessToken);
-		logger.info("User registered successfully.");
-		return new ResponseEntity<>(responseDTO, HttpStatus.CREATED);
+		//Return response with userDTO and access token
+		logger.info(Messages.USER_REGISTERED_SUCCESS);
+		UserDTO userDTO = new UserDTO(
+				user.getId(),
+				user.getUsername(),
+				user.getEmail(),
+				user.getRole(),
+				user.isEmailVerified(),
+				user.getBirthDate()
+		);
+		return ResponseEntity.status(HttpStatus.CREATED).body(
+				ApiResponse.builder()
+						.success(true)
+						.message(Messages.USER_REGISTERED_SUCCESS)
+						.data(userDTO)
+						.accessToken(accessToken)
+						.build()
+		);
 	}
 
-	public ResponseEntity<UserAuthResponseDTO> loginUser(UserLoginDTO userLoginDTO, HttpServletResponse response) {
-		Map<String, String> responseMessage = new HashMap<>();
+	public ResponseEntity<ApiResponse<Object>> loginUser(UserLoginDTO userLoginDTO, HttpServletResponse response) {
 		//Validate if user exists
 		User user = userRepository.findByEmail(userLoginDTO.getEmail())
 				.orElseThrow(() -> {
@@ -90,14 +99,27 @@ public class AuthService {
 		//Create an access token
 		String accessToken = accessTokenService.generateAccessToken(userEmail);
 
-		//Return response with jwt
-		responseMessage.put("message", Messages.LOGIN_SUCCESS);
-		UserAuthResponseDTO responseDTO = new UserAuthResponseDTO(responseMessage, accessToken);
-		logger.info("User logged in successfully.");
-		return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+		//Return userDTO with an access token
+		logger.info(Messages.LOGIN_SUCCESS);
+		UserDTO userDTO = new UserDTO(
+				user.getId(),
+				user.getUsername(),
+				user.getEmail(),
+				user.getRole(),
+				user.isEmailVerified(),
+				user.getBirthDate()
+		);
+		return ResponseEntity.ok(
+				ApiResponse.builder()
+						.success(true)
+						.message(Messages.LOGIN_SUCCESS)
+						.data(userDTO)
+						.accessToken(accessToken)
+						.build()
+		);
 	}
 
-	public ResponseEntity<?> logoutUser(String refreshToken, HttpServletResponse response) {
+	public ResponseEntity<ApiResponse<Object>> logoutUser(String refreshToken, HttpServletResponse response) {
 		return refreshTokenService.deleteRefreshToken(refreshToken, response);
 	}
 
@@ -128,7 +150,7 @@ public class AuthService {
 		}
 
 		if(!errors.isEmpty()) {
-			logger.warning("Registration failed.");
+			logger.warning(Messages.USER_REGISTERED_FAILED);
 			throw new UserRegistrationException(errors);
 		}
 	}

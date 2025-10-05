@@ -40,7 +40,6 @@ public class AccessTokenAuthFilter extends OncePerRequestFilter {
 			filterChain.doFilter(request, response);
 			return;
 		}
-
 		//Validate jwt token and authenticate the user if valid
 		try {
 			String accessTokenSubject = jwtUtils.extractSubject(jwt);
@@ -60,5 +59,4 @@ public class AccessTokenAuthFilter extends OncePerRequestFilter {
 		}
 		filterChain.doFilter(request, response);
 	}
-
 }

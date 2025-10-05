@@ -1,6 +1,7 @@
 package com.CalisthenicList.CaliList.service.tokens;
 
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.RefreshToken;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +55,7 @@ public class RefreshTokenService {
 		return createCookieWithRefreshToken(email, user);
 	}
 
-	private RefreshToken createRefreshToken(String email, User user) {
+	public RefreshToken createRefreshToken(String email, User user) {
 		String jwt = jwtUtils.generateJwt(email, tokenDuration);
 		//Update or create a refresh token
 		RefreshToken token = refreshTokenRepository.findByUserEmail(email)
@@ -73,12 +73,13 @@ public class RefreshTokenService {
 		return refreshTokenRepository.save(token);
 	}
 
-	public ResponseEntity<?> refreshAccessToken(String token, HttpServletResponse response) {
+	public ResponseEntity<ApiResponse<Object>> refreshAccessToken(String token, HttpServletResponse response) {
 		if(token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized - no refresh token");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.builder()
+							.success(false)
+							.message("Unauthorized - no refresh token")
+							.build());
 		}
-		//TODO - check if this if(token == null) is necessary
-
 		//Check if the refresh token exists
 		RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
 				.orElseThrow(() -> new UsernameNotFoundException(Messages.SERVICE_ERROR));
@@ -87,26 +88,37 @@ public class RefreshTokenService {
 		String jwtEmail = jwtUtils.extractSubject(token);
 		String userEmail = refreshToken.getUser().getEmail();
 		if(jwtEmail == null || !jwtUtils.validateIfJwtSubjectMatchTheUser(jwtEmail, userEmail)) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized - invalid token");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.builder()
+							.success(false)
+							.message("Unauthorized - invalid token")
+							.build());
 		}
-
 		if(isRefreshTokenExpired(refreshToken)) {
 			refreshTokenRepository.delete(refreshToken);
-			return ResponseEntity.badRequest().body("Refresh token expired. Please login again.");
+			return ResponseEntity.badRequest().body(ApiResponse.builder()
+							.success(false)
+							.message("Refresh token expired. Please login again.")
+							.build());
 		}
 
 		//Create a new refresh token
 		ResponseCookie cookieWithRefreshToken = createCookieWithRefreshToken(jwtEmail);
 		response.addHeader(HttpHeaders.SET_COOKIE, cookieWithRefreshToken.toString());
-
 		// Create a new access token
 		String accessToken = accessTokenService.generateAccessToken(jwtEmail);
-		return ResponseEntity.ok(Map.of("accessToken", accessToken));
+		return ResponseEntity.ok(ApiResponse.builder()
+						.success(true)
+						.message(Messages.EMAIL_VERIFICATION_SUCCESS)
+						.accessToken(accessToken)
+						.build());
 	}
 
-	public ResponseEntity<?> deleteRefreshToken(String token, HttpServletResponse response) {
+	public ResponseEntity<ApiResponse<Object>> deleteRefreshToken(String token, HttpServletResponse response) {
 		if(token == null) {
-			return ResponseEntity.badRequest().body("No refresh token found in cookies.");
+			return ResponseEntity.badRequest().body(ApiResponse.builder()
+							.success(false)
+							.message("No refresh token found in cookies.")
+							.build());
 		}
 		//Check if the refresh token exists
 		RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
@@ -121,9 +133,11 @@ public class RefreshTokenService {
 				.path("/")
 				.maxAge(0)
 				.build();
-
 		response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie.toString());
-		return ResponseEntity.ok("Logged out successfully.");
+		return ResponseEntity.ok(ApiResponse.builder()
+						.success(true)
+						.message("Logged out successfully.")
+						.build());
 	}
 
 	public boolean isRefreshTokenExpired(RefreshToken token) {

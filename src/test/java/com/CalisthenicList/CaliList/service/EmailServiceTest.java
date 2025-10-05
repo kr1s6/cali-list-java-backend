@@ -1,6 +1,7 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
@@ -23,7 +24,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -45,7 +45,7 @@ class EmailServiceTest {
 	@InjectMocks
 	private EmailService emailService;
 
-	private Optional<User> findByEmail(String email){
+	private Optional<User> findByEmail(String email) {
 		return userRepository.findByEmail(email);
 	}
 
@@ -108,7 +108,7 @@ class EmailServiceTest {
 		private final String userEmail = "test@example.com";
 		private User testUser;
 
-		private ResponseEntity<Map<String, String>> verifyEmail() {
+		private ResponseEntity<ApiResponse<Object>> verifyEmail() {
 			return emailService.verifyEmail(jwtToken);
 		}
 
@@ -127,11 +127,11 @@ class EmailServiceTest {
 			when(findByEmail(userEmail)).thenReturn(Optional.of(testUser));
 			when(jwtUtils.validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
 			// When
-			ResponseEntity<Map<String, String>> response = verifyEmail();
+			ResponseEntity<ApiResponse<Object>> response = verifyEmail();
 			// Then
 			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode(), "Should return ACCEPTED");
 			Assertions.assertNotNull(response.getBody());
-			assertEquals(Messages.EMAIL_VERIFICATION_SUCCESS, response.getBody().get("message"), "Wrong success message");
+			assertEquals(Messages.EMAIL_VERIFICATION_SUCCESS, response.getBody().getMessage(), "Wrong success message");
 			assertTrue(testUser.isEmailVerified(), "User email should be marked as verified");
 			verify(userRepository).save(testUser);
 		}

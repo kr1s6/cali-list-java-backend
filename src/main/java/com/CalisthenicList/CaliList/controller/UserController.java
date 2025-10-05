@@ -1,6 +1,7 @@
 package com.CalisthenicList.CaliList.controller;
 
 
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
 import com.CalisthenicList.CaliList.service.UserService;
 import jakarta.validation.Valid;
@@ -17,7 +18,7 @@ public class UserController {
 	private final UserService userService;
 
 	@DeleteMapping(deleteUserByIdUrl)
-	public ResponseEntity<String> deleteUserById(@Valid @RequestBody UserDeleteByIdDTO userDeleteByIdDto) {
+	public ResponseEntity<ApiResponse<Object>> deleteUserById(@Valid @RequestBody UserDeleteByIdDTO userDeleteByIdDto) {
 		return userService.deleteUserById(userDeleteByIdDto);
 //      TODO
 //       - need to be secured for admin, tests and for user to delete himself

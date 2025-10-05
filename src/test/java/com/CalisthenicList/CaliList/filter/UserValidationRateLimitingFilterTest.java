@@ -54,7 +54,7 @@ public class UserValidationRateLimitingFilterTest {
 	@DisplayName("For other urls")
 	class ForOtherUrls {
 		@Test
-		@DisplayName("✅ Should not rate-limit when request URI is different from loginUrl")
+		@DisplayName("✅ Happy Case: Should not rate-limit when request URI is different from loginUrl")
 		void givenOtherUrl_whenDoFilter_thenNotCountedAndAlwaysPasses() throws ServletException, IOException {
 			// Given
 			when(request.getRequestURI()).thenReturn("/api/other-endpoint");

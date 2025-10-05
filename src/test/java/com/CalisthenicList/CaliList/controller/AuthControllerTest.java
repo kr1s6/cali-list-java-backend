@@ -2,29 +2,27 @@ package com.CalisthenicList.CaliList.controller;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.constants.UserConstants;
+import com.CalisthenicList.CaliList.enums.Roles;
 import com.CalisthenicList.CaliList.filter.UserValidationRateLimitingFilter;
-import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserAuthResponseDTO;
-import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
+import com.CalisthenicList.CaliList.model.*;
+import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import org.junit.jupiter.api.*;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SuppressWarnings({"rawtypes"})
 class AuthControllerTest {
 
 	@Autowired
@@ -37,36 +35,31 @@ class AuthControllerTest {
 	@Autowired
 	private UserRepository userRepository;
 	@Autowired
+	private RefreshTokenRepository refreshTokenRepository;
+	@Autowired
 	private UserValidationRateLimitingFilter filter;
 	private int maxRequestsPerMinute;
 
-	private Optional<User> findByEmail(String email){
+	private Optional<User> findByEmail(String email) {
 		return userRepository.findByEmail(email);
 	}
 
-	private Optional<User> findByUsername(String username){
+	private Optional<User> findByUsername(String username) {
 		return userRepository.findByUsername(username);
 	}
 
+	private Optional<RefreshToken> findByUserEmail(String email) {
+		return refreshTokenRepository.findByUserEmail(email);
+	}
 
 	@BeforeEach
 	void initEach() {
 		filter = new UserValidationRateLimitingFilter();
-		postRegisterUrl = "http://localhost:" + port + "/register";
+		postRegisterUrl = "http://localhost:" + port + AuthController.registerUrl;
 		maxRequestsPerMinute = filter.MAX_HEAVY_REQUESTS_PER_MINUTE;
 		//-----Headers-----
 		headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		String csrfUrl = "http://localhost:" + port + "/csrf";
-		ResponseEntity<Map> response = testRestTemplate.exchange(csrfUrl, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
-		String token = response.getBody().get("token").toString();
-		String headerName = response.getBody().get("headerName").toString();
-		headers.set(headerName, token);
-		List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
-		if(cookies != null && !cookies.isEmpty()) {
-			String jsession = cookies.get(0).split(";", 2)[0];
-			headers.set(HttpHeaders.COOKIE, jsession);
-		}
 		//-----Headers-----
 	}
 
@@ -84,6 +77,9 @@ class AuthControllerTest {
 
 		@AfterEach
 		void cleanUp() {
+			if(findByUserEmail(validEmail).isPresent()) {
+				refreshTokenRepository.delete(findByUserEmail(validEmail).get());
+			}
 			if(findByEmail(validEmail).isPresent()) {
 				userRepository.delete(findByEmail(validEmail).get());
 			}
@@ -98,11 +94,23 @@ class AuthControllerTest {
 			// Given
 			HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 			// When
-			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+			ResponseEntity<ApiResponse<UserDTO>> response = testRestTemplate.exchange(postRegisterUrl, HttpMethod.POST,
+					registrationRequest, new ParameterizedTypeReference<>() {});
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Should return Created.");
 			assertTrue(findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
 			assertTrue(findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+			ApiResponse<UserDTO> responseBody = response.getBody();
+			assertNotNull(responseBody);
+			assertNotNull(responseBody.getAccessToken());
+			assertTrue(responseBody.isSuccess(), "Response should be successful.");
+			assertEquals(Messages.USER_REGISTERED_SUCCESS, responseBody.getMessage(), "Wrong message.");
+			UserDTO userDTO = responseBody.getData();
+			assertNotNull(userDTO.getId());
+			assertEquals(Roles.ROLE_USER, userDTO.getRole());
+			assertEquals(validUsername, userDTO.getUsername());
+			assertEquals(validEmail, userDTO.getEmail());
+			assertFalse(userDTO.isEmailVerified());
 		}
 
 		@Test
@@ -114,10 +122,9 @@ class AuthControllerTest {
 			userRegistrationDTO.setConfirmPassword(veryLongPassword);
 			HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 			// When
-			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+			ResponseEntity<ApiResponse> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, ApiResponse.class);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Should return Created.");
-			assertTrue(findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
 			assertTrue(findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
 		}
 
@@ -130,49 +137,35 @@ class AuthControllerTest {
 			userRegistrationDTO.setConfirmPassword(tooLongPassword);
 			HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
 			// When
-			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+			ResponseEntity<ApiResponse> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, ApiResponse.class);
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST), "Should return Bad Request.");
 			assertFalse(findByUsername(validUsername).isPresent(), "Warning! Username not found in DB");
 			assertFalse(findByEmail(validEmail).isPresent(), "Warning! Email not found in DB");
+			ApiResponse responseBody = response.getBody();
+			assertNotNull(responseBody);
+			assertNull(responseBody.getAccessToken());
+			assertFalse(responseBody.isSuccess(), "Response should be unsuccessful.");
+			assertEquals("Validation failed.", responseBody.getMessage());
 		}
 
-		//@Test
-		//@DisplayName("❌ Negative Case: Password too long")
-		//void givenTooLongPassword_whenRegister_thenReturnInvalidConfirmPasswordError() {
-		//	// Given
-		//	Mockito.when(emailService.dnsEmailLookup(anyString())).thenReturn(true);
-		//	Mockito.when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-		//	String tooLongPassword = "a".repeat(UserConstants.PASSWORD_MAX_LENGTH + 1);
-		//	userRegistrationDTO.setPassword(tooLongPassword);
-		//	userRegistrationDTO.setConfirmPassword(tooLongPassword);
-		//	// When
-		//	ResponseEntity<UserAuthResponseDTO> response = authService.registerUser(userRegistrationDTO, mockResponse);
-		//	// Then
-		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CONFLICT), "Should return Conflict.");
-		//	assertNotNull(response.getBody());
-		//	//Validate message
-		//	UserAuthResponseDTO dto = response.getBody();
-		//	assertEquals(Messages.INVALID_CONFIRM_PASSWORD_ERROR, dto.getMessage().get("message"), "Wrong error message.");
-		//}
-
-		//@Test
-		//@DisplayName("❌ Negative Case: Block coming 'Post Register' requests after reaching requests limit.")
-		//void givenRequestsOverLimit_whenSendingPostRegister_thenReturnsTooManyRequestsError() throws InterruptedException {
-		//	// Given
-		//	HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
-		//	// When
-		//	for(int i = 0; i < maxRequestsPerMinute; i++) {
-		//		ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
-		//		assertFalse(response.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS), "Shouldn't return Too many requests.");
-		//	}
-		//	ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
-		//	// Then
-		//	assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS), "Should return Too many requests.");
-		//	String responseBody = response.getBody();
-		//	assertEquals("Too many requests. Please try again later.", responseBody, "Wrong error message.");
-		//	Thread.sleep(filter.REFILL_PERIOD);
-		//}
+		@Test
+		@DisplayName("❌ Negative Case: Block coming 'Post Register' requests after reaching requests limit.")
+		void givenRequestsOverLimit_whenSendingPostRegister_thenReturnsTooManyRequestsError() throws InterruptedException {
+			// Given
+			HttpEntity<UserRegistrationDTO> registrationRequest = new HttpEntity<>(userRegistrationDTO, headers);
+			// When
+			for(int i = 0; i < maxRequestsPerMinute; i++) {
+				ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+				assertFalse(response.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS), "Shouldn't return Too many requests.");
+			}
+			ResponseEntity<String> response = testRestTemplate.postForEntity(postRegisterUrl, registrationRequest, String.class);
+			// Then
+			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS), "Should return Too many requests.");
+			String responseBody = response.getBody();
+			assertEquals("Too many requests. Please try again later.", responseBody, "Wrong error message.");
+			Thread.sleep(filter.REFILL_PERIOD);
+		}
 	}
 
 	@Nested

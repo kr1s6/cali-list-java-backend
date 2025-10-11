@@ -32,17 +32,17 @@ public class AccessTokenAuthFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
 									@NonNull FilterChain filterChain) throws ServletException, IOException {
 		final String authHeader = request.getHeader("Authorization");
-		final String jwt;
-		//Parse jwt token from Authorization header
+		final String accessToken;
+		//Parse accessToken from Authorization header
 		if(authHeader != null && authHeader.startsWith("Bearer ")) {
-			jwt = authHeader.substring(7);
+			accessToken = authHeader.substring(7);
 		} else {
 			filterChain.doFilter(request, response);
 			return;
 		}
 		//Validate jwt token and authenticate the user if valid
 		try {
-			String accessTokenSubject = jwtUtils.extractSubject(jwt);
+			String accessTokenSubject = jwtUtils.extractSubject(accessToken);
 			if(accessTokenSubject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 				UserDetails userDetails = userDetailsService.loadUserByUsername(accessTokenSubject);
 				if(jwtUtils.validateIfJwtSubjectMatchTheUser(accessTokenSubject, userDetails)) {

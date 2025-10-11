@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 public class AuthController {
-	public static final String registerUrl = "/register";
-	public static final String loginUrl = "/login";
-	public static final String logoutUrl = "/logout";
-	public static final String emailVerificationUrl = "/email-verification/{token}";
-	public static final String refreshTokenUrl = "/refreshToken";
+	public static final String registerUrl = "/api/register";
+	public static final String loginUrl = "/api/login";
+	public static final String logoutUrl = "/api/logout";
+	public static final String emailVerificationUrl = "/api/email-verification/{token}";
+	public static final String refreshTokenUrl = "/api/refreshToken";
 	private final AuthService authService;
 	private final EmailService emailService;
 	private final RefreshTokenService refreshTokenService;

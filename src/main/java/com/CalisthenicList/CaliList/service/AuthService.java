@@ -55,18 +55,11 @@ public class AuthService {
 		String accessToken = accessTokenService.generateAccessToken(userEmail);
 
 		//Send Async email verification
-		emailService.postEmailVerificationToUser(userEmail);
+		//emailService.postEmailVerificationToUser(userEmail);
 
 		//Return response with userDTO and access token
 		logger.info(Messages.USER_REGISTERED_SUCCESS);
-		UserDTO userDTO = new UserDTO(
-				user.getId(),
-				user.getUsername(),
-				user.getEmail(),
-				user.getRole(),
-				user.isEmailVerified(),
-				user.getBirthDate()
-		);
+		UserDTO userDTO = new UserDTO(user);
 		return ResponseEntity.status(HttpStatus.CREATED).body(
 				ApiResponse.builder()
 						.success(true)
@@ -101,14 +94,7 @@ public class AuthService {
 
 		//Return userDTO with an access token
 		logger.info(Messages.LOGIN_SUCCESS);
-		UserDTO userDTO = new UserDTO(
-				user.getId(),
-				user.getUsername(),
-				user.getEmail(),
-				user.getRole(),
-				user.isEmailVerified(),
-				user.getBirthDate()
-		);
+		UserDTO userDTO = new UserDTO(user);
 		return ResponseEntity.ok(
 				ApiResponse.builder()
 						.success(true)

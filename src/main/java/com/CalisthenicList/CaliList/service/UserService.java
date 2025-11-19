@@ -4,9 +4,9 @@ import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
+import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -22,6 +22,7 @@ public class UserService {
 	private final Logger logger = Logger.getLogger(UserService.class.getName());
 	private final UserRepository userRepository;
 	private final PasswordEncoder encoder;
+	private final RefreshTokenRepository refreshTokenRepository;
 
 	public ResponseEntity<ApiResponse<Object>> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
 		UUID id = userDeleteByIdDto.getUserId();
@@ -38,7 +39,8 @@ public class UserService {
 			logger.warning("Invalid password for user deletion attempt.");
 			throw new BadCredentialsException(Messages.SERVICE_ERROR);
 		}
-		//Delete user
+		//Delete user and refresh token
+		refreshTokenRepository.findByUserEmail(user.getEmail()).ifPresent(refreshTokenRepository::delete);
 		userRepository.delete(user);
 		logger.info(Messages.USER_DELETED);
 		return ResponseEntity.ok(

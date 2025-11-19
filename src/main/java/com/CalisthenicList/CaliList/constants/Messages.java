@@ -23,7 +23,7 @@ public final class Messages {
 	public static final String INVALID_CONFIRM_PASSWORD_ERROR = "Wrong confirm password.";
 
 	// Birthdate
-	public static final String BIRTHDATE_PAST_ERROR = "Put valid birthdate.";
+	public static final String DATE_SHOULD_BE_PAST = "Put date in the past.";
 
 	// System / General
 	public static final String SERVICE_ERROR = "Service error. Contact support.";
@@ -33,5 +33,7 @@ public final class Messages {
 	public static final String USER_REGISTERED_FAILED = "User registration failed.";
 	public static final String LOGIN_SUCCESS = "Login successful.";
 	public static final String USER_DELETED = "User deleted successfully";
+	public static final String REFRESH_TOKEN_SUCCESS = "Token refreshed successfully";
+	public static final String VALIDATION_FAILED = "Validation failed.";
 
 }

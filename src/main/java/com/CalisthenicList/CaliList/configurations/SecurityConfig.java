@@ -14,8 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import static com.CalisthenicList.CaliList.controller.AuthController.logoutUrl;
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor

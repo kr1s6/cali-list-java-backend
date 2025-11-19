@@ -56,8 +56,8 @@ public class AuthController {
 	}
 
 	@PostMapping(refreshTokenUrl)
-	public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String token,
+	public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String refreshToken,
 										  HttpServletResponse response) {
-		return refreshTokenService.refreshAccessToken(token, response);
+		return refreshTokenService.refreshAccessToken(refreshToken, response);
 	}
 }

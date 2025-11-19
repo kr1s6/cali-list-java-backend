@@ -336,7 +336,7 @@ class UserRepositoryTest {
 			// When Then
 			ConstraintViolationException exception = assertThrows(ConstraintViolationException.class, () -> userRepository.saveAndFlush(user));
 			String message = exception.getConstraintViolations().iterator().next().getMessage();
-			assertEquals(Messages.BIRTHDATE_PAST_ERROR, message, "Wrong error message.");
+			assertEquals(Messages.DATE_SHOULD_BE_PAST, message, "Wrong error message.");
 		}
 	}
 }

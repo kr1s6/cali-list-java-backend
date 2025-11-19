@@ -58,7 +58,7 @@ public class User implements UserDetails {
 	@Column(nullable = false)
 	private boolean emailVerified;
 
-	@Past(message = Messages.BIRTHDATE_PAST_ERROR)
+	@Past(message = Messages.DATE_SHOULD_BE_PAST)
 	private LocalDate birthDate;
 
 	@CreatedDate
@@ -67,6 +67,9 @@ public class User implements UserDetails {
 
 	@LastModifiedDate
 	private Instant updatedDate;
+
+	@Past(message = Messages.DATE_SHOULD_BE_PAST)
+	private LocalDate caliStartDate;
 
 	public User(String username, String email, String password) {
 		this.username = username;

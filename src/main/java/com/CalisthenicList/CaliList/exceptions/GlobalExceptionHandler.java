@@ -1,14 +1,17 @@
 package com.CalisthenicList.CaliList.exceptions;
 
+import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +26,25 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(UserRegistrationException.class)
 	public ResponseEntity<ApiResponse<Object>> handleUserRegistration(UserRegistrationException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
+		List<String> error = new ArrayList<>();
+		error.add(ex.getMessage());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(
 				ApiResponse.builder()
 						.success(false)
 						.message(ex.getMessage())
-						.data(ex.getErrors())
+						.data(error)
+						.build()
+		);
+	}
+
+	@ExceptionHandler(BadCredentialsException.class)
+	public ResponseEntity<ApiResponse<Object>> handleBadCredentials(BadCredentialsException ex) {
+		logger.log(Level.WARNING, ex.getMessage(), ex);
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(
+				ApiResponse.builder()
+						.success(false)
+						.message(ex.getMessage())
+						.data(ex.getMessage())
 						.build()
 		);
 	}
@@ -40,6 +57,7 @@ public class GlobalExceptionHandler {
 				ApiResponse.builder()
 						.success(false)
 						.message(ex.getMessage())
+						.data(ex.getMessage())
 						.build()
 		);
 	}
@@ -56,7 +74,7 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
 				ApiResponse.builder()
 						.success(false)
-						.message("Validation failed.")
+						.message(Messages.VALIDATION_FAILED)
 						.data(errors)
 						.build()
 		);

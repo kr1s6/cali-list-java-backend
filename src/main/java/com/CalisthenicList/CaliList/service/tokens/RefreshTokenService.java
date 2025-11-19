@@ -38,6 +38,13 @@ public class RefreshTokenService {
 		tokenDuration = Duration.ofDays(refreshTokenDuration);
 	}
 
+
+	public ResponseCookie createCookieWithRefreshToken(String email) {
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new UsernameNotFoundException(Messages.USER_NOT_FOUND));
+		return createCookieWithRefreshToken(email, user);
+	}
+
 	public ResponseCookie createCookieWithRefreshToken(String email, User user) {
 		RefreshToken refreshToken = createRefreshToken(email, user);
 		return ResponseCookie.from("refreshToken", refreshToken.getToken())
@@ -47,12 +54,6 @@ public class RefreshTokenService {
 				.path("/")
 				.maxAge(tokenDuration)
 				.build();
-	}
-
-	public ResponseCookie createCookieWithRefreshToken(String email) {
-		User user = userRepository.findByEmail(email)
-				.orElseThrow(() -> new UsernameNotFoundException(Messages.USER_NOT_FOUND));
-		return createCookieWithRefreshToken(email, user);
 	}
 
 	public RefreshToken createRefreshToken(String email, User user) {
@@ -73,19 +74,19 @@ public class RefreshTokenService {
 		return refreshTokenRepository.save(token);
 	}
 
-	public ResponseEntity<ApiResponse<Object>> refreshAccessToken(String token, HttpServletResponse response) {
-		if(token == null) {
+	public ResponseEntity<ApiResponse<Object>> refreshAccessToken(String refToken, HttpServletResponse response) {
+		if(refToken == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.builder()
 							.success(false)
 							.message("Unauthorized - no refresh token")
 							.build());
 		}
 		//Check if the refresh token exists
-		RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-				.orElseThrow(() -> new UsernameNotFoundException(Messages.SERVICE_ERROR));
+		RefreshToken refreshToken = refreshTokenRepository.findByToken(refToken)
+				.orElseThrow(() -> new UsernameNotFoundException(Messages.UNAUTHORIZED));
 
 		//Validate refresh token
-		String jwtEmail = jwtUtils.extractSubject(token);
+		String jwtEmail = jwtUtils.extractSubject(refToken);
 		String userEmail = refreshToken.getUser().getEmail();
 		if(jwtEmail == null || !jwtUtils.validateIfJwtSubjectMatchTheUser(jwtEmail, userEmail)) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.builder()
@@ -108,20 +109,20 @@ public class RefreshTokenService {
 		String accessToken = accessTokenService.generateAccessToken(jwtEmail);
 		return ResponseEntity.ok(ApiResponse.builder()
 						.success(true)
-						.message(Messages.EMAIL_VERIFICATION_SUCCESS)
+						.message(Messages.REFRESH_TOKEN_SUCCESS)
 						.accessToken(accessToken)
 						.build());
 	}
 
-	public ResponseEntity<ApiResponse<Object>> deleteRefreshToken(String token, HttpServletResponse response) {
-		if(token == null) {
+	public ResponseEntity<ApiResponse<Object>> deleteRefreshToken(String refToken, HttpServletResponse response) {
+		if(refToken == null) {
 			return ResponseEntity.badRequest().body(ApiResponse.builder()
 							.success(false)
 							.message("No refresh token found in cookies.")
 							.build());
 		}
 		//Check if the refresh token exists
-		RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
+		RefreshToken refreshToken = refreshTokenRepository.findByToken(refToken)
 				.orElseThrow(() -> new UsernameNotFoundException(Messages.SERVICE_ERROR));
 		refreshTokenRepository.delete(refreshToken);
 

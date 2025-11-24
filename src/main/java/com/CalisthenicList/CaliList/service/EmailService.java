@@ -2,6 +2,7 @@ package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
+import com.CalisthenicList.CaliList.model.EmailDTO;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
@@ -9,6 +10,7 @@ import com.CalisthenicList.CaliList.utils.JwtUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 public class EmailService {
 	public final String VERIFICATION_BASE_URL = "http://localhost:8080/email-verification/";
+	public final String PASSWORD_RECOVERY_BASE_URL = "http://localhost:3000/login/passwrod-recovery/";
 	private final Logger logger = Logger.getLogger(EmailService.class.getName());
 	private final JavaMailSender javaMailSender; //INFO - JavaMailSender @Bean is loaded automatically with "spring.mail" properties
 	private final UserRepository userRepository;
@@ -94,6 +97,30 @@ public class EmailService {
 						.message(Messages.EMAIL_VERIFICATION_SUCCESS)
 						.build()
 		);
+	}
+
+	@Async
+	public void sendRecoverPasswordEmail(@Valid EmailDTO emailDTO) {
+		String userEmail = emailDTO.getEmail();
+		//Generate token
+		String token = accessTokenService.generateAccessToken(userEmail);
+		//Create email
+		String passwordRecoveryUrl = PASSWORD_RECOVERY_BASE_URL + URLEncoder.encode(token, StandardCharsets.UTF_8);
+		MimeMessage message = javaMailSender.createMimeMessage();
+		MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+		try {
+			InternetAddress from = new InternetAddress("no-reply@CaliList.com", "CaliList");
+			helper.setFrom(from);
+			helper.setTo(userEmail);
+			helper.setSubject("Password recovery");
+			String content = "Click below to set new password:\n" + passwordRecoveryUrl;
+			helper.setText(content);
+		} catch(UnsupportedEncodingException | MessagingException e) {
+			logger.warning("Failed to compose password verification.");
+			throw new IllegalStateException("Failed to compose password verification", e);
+		}
+		//Send email
+		javaMailSender.send(message);
 	}
 
 	//Validate if email has proper domain

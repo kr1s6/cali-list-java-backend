@@ -7,6 +7,7 @@ import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
+import com.CalisthenicList.CaliList.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +47,8 @@ class AuthServiceTest {
 	private RefreshTokenService refreshTokenService;
 	@Mock
 	private AccessTokenService accessTokenService;
+	@Mock
+	private JwtUtils jwtUtils;
 	@InjectMocks
 	private AuthService authService;
 	private MockHttpServletResponse mockResponse;
@@ -58,7 +61,7 @@ class AuthServiceTest {
 		return userRepository.findByEmail(email);
 	}
 
-	private String generateAccessToken(String email){
+	private String generateAccessToken(String email) {
 		return accessTokenService.generateAccessToken(email);
 	}
 
@@ -263,6 +266,86 @@ class AuthServiceTest {
 			BadCredentialsException ex = assertThrows(BadCredentialsException.class,
 					() -> loginUser(userLoginDTO, mockResponse));
 			assertEquals(Messages.INVALID_LOGIN_ERROR, ex.getMessage());
+		}
+	}
+
+	@Nested
+	@DisplayName("passwordRecovery")
+	class PasswordRecoveryTest {
+		private final String email = "test@example.com";
+		private final String rawPassword = "Password123!";
+		private final String otherPassword = "Different123!";
+		private final String encodedPassword = "ENCODED12345";
+		private PasswordRecoveryDTO passwordRecoveryDTO;
+
+		@BeforeEach
+		void setUp() {
+			passwordRecoveryDTO = new PasswordRecoveryDTO();
+		}
+
+		@Test
+		@DisplayName("✅ Happy Case — password successfully recovered")
+		void givenValidData_WhenPasswordRecovery_ThenReturnSuccess() {
+			// Given
+			passwordRecoveryDTO.setPassword(rawPassword);
+			passwordRecoveryDTO.setConfirmPassword(rawPassword);
+			User user = new User();
+			user.setEmail(email);
+			user.setPassword("OLD_PASSWORD");
+			String jwt = "jwt-token";
+			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+			Mockito.when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
+			// When
+			ResponseEntity<ApiResponse<Object>> response = authService.passwordRecovery(jwt, passwordRecoveryDTO);
+			// Then
+			assertEquals(HttpStatus.OK, response.getStatusCode());
+			assertNotNull(response.getBody());
+			assertTrue(response.getBody().isSuccess());
+			assertEquals("Password recovered successfully.", response.getBody().getMessage());
+			Mockito.verify(userRepository).save(user);
+			assertEquals(encodedPassword, user.getPassword());
+		}
+
+		@Test
+		@DisplayName("❌ Error — passwords do not match")
+		void givenDifferentPasswords_WhenPasswordRecovery_ThenThrowException() {
+			// Given
+			passwordRecoveryDTO.setPassword(rawPassword);
+			passwordRecoveryDTO.setConfirmPassword(otherPassword);
+			String jwt = "jwt-token";
+			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			// Then + When
+			assertThrows(BadCredentialsException.class, () -> authService.passwordRecovery(jwt, passwordRecoveryDTO));
+		}
+
+		@Test
+		@DisplayName("❌ Error — user not found")
+		void givenUnknownUser_WhenPasswordRecovery_ThenThrowException() {
+			// Given
+			passwordRecoveryDTO.setPassword(rawPassword);
+			passwordRecoveryDTO.setConfirmPassword(rawPassword);
+			String jwt = "jwt-token";
+			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+			// When + Then
+			assertThrows(UsernameNotFoundException.class, () -> authService.passwordRecovery(jwt, passwordRecoveryDTO));
+		}
+
+		@Test
+		@DisplayName("❌ Error — password encoding failed")
+		void givenInvalidEncoding_WhenPasswordRecovery_ThenThrowException() {
+			// Given
+			passwordRecoveryDTO.setPassword(rawPassword);
+			passwordRecoveryDTO.setConfirmPassword(rawPassword);
+			User user = new User();
+			user.setEmail(email);
+			String jwt = "jwt";
+			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+			Mockito.when(passwordEncoder.encode(rawPassword)).thenReturn(rawPassword);
+			// When + Then
+			assertThrows(RuntimeException.class, () -> authService.passwordRecovery(jwt, passwordRecoveryDTO));
 		}
 	}
 }

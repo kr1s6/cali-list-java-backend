@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(BadCredentialsException.class)
 	public ResponseEntity<ApiResponse<Object>> handleBadCredentials(BadCredentialsException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
-		return ResponseEntity.status(HttpStatus.CONFLICT).body(
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
 				ApiResponse.builder()
 						.success(false)
 						.message(ex.getMessage())

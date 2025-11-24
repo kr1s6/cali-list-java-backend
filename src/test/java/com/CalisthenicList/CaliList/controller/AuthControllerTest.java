@@ -4,12 +4,10 @@ import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.constants.UserConstants;
 import com.CalisthenicList.CaliList.enums.Roles;
 import com.CalisthenicList.CaliList.filter.UserValidationRateLimitingFilter;
-import com.CalisthenicList.CaliList.model.RefreshToken;
-import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserLoginDTO;
-import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
+import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
+import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
 import io.restassured.RestAssured;
 import org.hamcrest.Matchers;
@@ -44,6 +42,8 @@ class AuthControllerTest {
 	private UserValidationRateLimitingFilter filter;
 	@Autowired
 	private RefreshTokenService refreshTokenService;
+	@Autowired
+	private AccessTokenService accessTokenService;
 	private int maxRequestsPerMinute;
 	private final String initUsername = "InitUser";
 	private final String initEmail = "Inittest@interia.pl";
@@ -319,4 +319,85 @@ class AuthControllerTest {
 					.statusCode(HttpStatus.NOT_FOUND.value());
 		}
 	}
+
+	@Nested
+	@DisplayName("/passwordRecovery/{token}")
+	class PasswordRecoveryTest {
+		private String passwordRecoveryUrl;
+
+		@BeforeEach
+		void initEach() {
+			passwordRecoveryUrl = "http://localhost:" + port + AuthController.passwordRecoveryUrl;
+		}
+
+		@Test
+		@DisplayName("✅ Happy Case: valid token + valid passwords → 200 OK")
+		void givenValidRequest_WhenPasswordRecovery_ThenSuccess() {
+			String jwt = accessTokenService.generateAccessToken(initEmail);
+			PasswordRecoveryDTO dto = new PasswordRecoveryDTO();
+			dto.setPassword("NewPassword123!");
+			dto.setConfirmPassword("NewPassword123!");
+			RestAssured.given()
+					.body(dto)
+					.headers(headers)
+					.when()
+					.post(passwordRecoveryUrl.replace("{token}", jwt))
+					.then()
+					.statusCode(HttpStatus.OK.value())
+					.body("success", Matchers.equalTo(true))
+					.body("message", Matchers.equalTo("Password recovered successfully."));
+		}
+
+		@Test
+		@DisplayName("❌ Error: passwords do not match → 400 Bad Request")
+		void givenDifferentPasswords_WhenPasswordRecovery_ThenBadRequest() {
+			String jwt = accessTokenService.generateAccessToken(initEmail);
+			PasswordRecoveryDTO dto = new PasswordRecoveryDTO();
+			dto.setPassword("Password123!");
+			dto.setConfirmPassword("WrongPassword123");
+			RestAssured.given()
+					.body(dto)
+					.headers(headers)
+					.when()
+					.post(passwordRecoveryUrl.replace("{token}", jwt))
+					.then()
+					.statusCode(HttpStatus.UNAUTHORIZED.value())
+					.body("success", Matchers.equalTo(false));
+		}
+
+		@Test
+		@DisplayName("❌ Error: user not found → 404")
+		void givenUnknownUser_WhenPasswordRecovery_ThenUserNotFound() {
+			String unknownEmail = "unknown@example.com";
+			String jwt = accessTokenService.generateAccessToken(unknownEmail);
+			PasswordRecoveryDTO dto = new PasswordRecoveryDTO();
+			dto.setPassword("Password123!");
+			dto.setConfirmPassword("Password123!");
+			RestAssured.given()
+					.body(dto)
+					.headers(headers)
+					.when()
+					.post(passwordRecoveryUrl.replace("{token}", jwt))
+					.then()
+					.statusCode(HttpStatus.NOT_FOUND.value())
+					.body("success", Matchers.equalTo(false));
+		}
+
+		@Test
+		@DisplayName("❌ Error: invalid token → 400")
+		void givenInvalidToken_WhenPasswordRecovery_ThenBadRequest() {
+			String jwt = "invalid.jwt.token";
+			PasswordRecoveryDTO dto = new PasswordRecoveryDTO();
+			dto.setPassword("Password123!");
+			dto.setConfirmPassword("Password123!");
+			RestAssured.given()
+					.body(dto)
+					.headers(headers)
+					.when()
+					.post(passwordRecoveryUrl.replace("{token}", jwt))
+					.then()
+					.statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
+	}
+
 }

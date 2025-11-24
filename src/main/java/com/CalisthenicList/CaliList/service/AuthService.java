@@ -6,7 +6,9 @@ import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
+import com.CalisthenicList.CaliList.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,7 @@ public class AuthService {
 	private final EmailService emailService;
 	private final RefreshTokenService refreshTokenService;
 	private final AccessTokenService accessTokenService;
+	private final JwtUtils jwtUtils;
 
 	public ResponseEntity<ApiResponse<Object>> registerUser(UserRegistrationDTO userDto, HttpServletResponse response) {
 		//Validate user input
@@ -109,6 +112,58 @@ public class AuthService {
 		return refreshTokenService.deleteRefreshToken(refreshToken, response);
 	}
 
+	public ResponseEntity<ApiResponse<Object>> sendPasswordRecoveryEmail(EmailDTO userEmail) {
+		emailService.sendRecoverPasswordEmail(userEmail);
+		return ResponseEntity.ok(
+				ApiResponse.builder()
+						.success(true)
+						.message("Email send successfully.")
+						.data("Email send successfully.")
+						.build()
+		);
+
+	}
+
+	public ResponseEntity<ApiResponse<Object>> passwordRecovery(String jwt, @Valid PasswordRecoveryDTO passwordRecoveryDTO) {
+		//Validate credentials
+		String userEmail = jwtUtils.extractSubject(jwt);
+		String rawPassword = passwordRecoveryDTO.getPassword();
+		String rawRepeatedPassword = passwordRecoveryDTO.getConfirmPassword();
+		boolean isValidRepeatablePassword = rawPassword.equals(rawRepeatedPassword);
+		if(!isValidRepeatablePassword) {
+			logger.warning(Messages.INVALID_CONFIRM_PASSWORD_ERROR);
+			throw new BadCredentialsException(Messages.INVALID_CONFIRM_PASSWORD_ERROR);
+		}
+
+		//Validate if user exists
+		User user = userRepository.findByEmail(userEmail)
+				.orElseThrow(() -> {
+					logger.warning(Messages.USER_NOT_FOUND);
+					return new UsernameNotFoundException(Messages.USER_NOT_FOUND);
+				});
+
+		//Encode password
+		String encodedPassword = encoder.encode(rawPassword);
+		if(encodedPassword.equals(rawPassword)) {
+			logger.severe("Password encoding failed.");
+			throw new RuntimeException("Password encoding failed.");
+		}
+
+		//Update and save user
+		user.setPassword(encodedPassword);
+		userRepository.save(user);
+
+		//Return apiResponse
+		logger.info("Password recovered successfully.");
+		return ResponseEntity.ok(
+				ApiResponse.builder()
+						.success(true)
+						.message("Password recovered successfully.")
+						.data("Password recovered successfully.")
+						.build()
+		);
+	}
+
 	private void handleRegistrationErrors(UserRegistrationDTO userDto) {
 		Map<String, String> errors = new HashMap<>();
 		String username = userDto.getUsername();
@@ -140,4 +195,5 @@ public class AuthService {
 			throw new UserRegistrationException(errors);
 		}
 	}
+
 }

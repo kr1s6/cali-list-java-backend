@@ -184,7 +184,7 @@ class AuthServiceTest {
 			RuntimeException ex = assertThrows(RuntimeException.class,
 					() -> registerUser(userRegistrationDTO, mockResponse));
 			// Validate exception message
-			assertEquals(Messages.SERVICE_ERROR, ex.getMessage(), "Wrong error message for invalid password encoder.");
+			assertEquals(Messages.PASSWORD_ENCODING_FAILED, ex.getMessage(), "Wrong error message for invalid password encoder.");
 		}
 
 		@Test

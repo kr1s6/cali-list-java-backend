@@ -112,7 +112,7 @@ public class UserControllerTest {
 					.when()
 					.delete(deleteUserByIdUrl)
 					.then()
-					.statusCode(HttpStatus.CONFLICT.value());
+					.statusCode(HttpStatus.UNAUTHORIZED.value());
 		}
 
 		@Test

@@ -41,8 +41,8 @@ public class AuthService {
 		String rawPassword = userDto.getPassword();
 		String encodedPassword = encoder.encode(rawPassword);
 		if(encodedPassword.equals(rawPassword)) {
-			logger.severe("Password encoding failed.");
-			throw new RuntimeException("Password encoding failed.");
+			logger.severe(Messages.PASSWORD_ENCODING_FAILED);
+			throw new RuntimeException(Messages.PASSWORD_ENCODING_FAILED);
 		}
 
 		//Save user to DB
@@ -145,8 +145,8 @@ public class AuthService {
 		//Encode password
 		String encodedPassword = encoder.encode(rawPassword);
 		if(encodedPassword.equals(rawPassword)) {
-			logger.severe("Password encoding failed.");
-			throw new RuntimeException("Password encoding failed.");
+			logger.severe(Messages.PASSWORD_ENCODING_FAILED);
+			throw new RuntimeException(Messages.PASSWORD_ENCODING_FAILED);
 		}
 
 		//Update and save user

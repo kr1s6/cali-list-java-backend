@@ -21,6 +21,7 @@ public final class Messages {
 	public static final String PASSWORD_NOT_BLANK_ERROR = "The password must not be empty.";
 	public static final String INVALID_LOGIN_ERROR = "Invalid email or password.";
 	public static final String INVALID_CONFIRM_PASSWORD_ERROR = "Wrong confirm password.";
+	public static final String PASSWORD_ENCODING_FAILED = "Password encoding failed.";
 
 	// Birthdate
 	public static final String DATE_SHOULD_BE_PAST = "Put date in the past.";

@@ -227,7 +227,7 @@ class AuthControllerTest {
 					.post(postLoginUrl)
 					.then()
 					.log().all()
-					.statusCode(HttpStatus.CONFLICT.value())
+					.statusCode(HttpStatus.UNAUTHORIZED.value())
 					.body("success", Matchers.equalTo(false))
 					.body("message", Matchers.equalTo(Messages.INVALID_LOGIN_ERROR))
 					.body("accessToken", Matchers.nullValue())

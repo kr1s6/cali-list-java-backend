@@ -1,6 +1,5 @@
 package com.CalisthenicList.CaliList.controller;
 
-
 import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.BirthdateDTO;
 import com.CalisthenicList.CaliList.model.CaliStartDateDTO;
@@ -19,8 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequiredArgsConstructor
 public class UserController {
 	public static final String deleteUserByIdUrl = "/api/deleteUser";
-	public static final String patchUserBirthdateUrl = "/api/set-user-birthday";
-	public static final String patchUserCaliStartDateUrl = "/api/set-user-cali-start-day";
+	public static final String patchUserBirthdateUrl = "/api/set-user-birthdate";
+	public static final String patchUserCaliStartDateUrl = "/api/set-user-cali-start-date";
 	private final UserService userService;
 
 	@DeleteMapping(deleteUserByIdUrl)
@@ -31,14 +30,14 @@ public class UserController {
 	}
 
 	@PatchMapping(patchUserBirthdateUrl)
-	public ResponseEntity<ApiResponse<Object>> setUserBirthdate(@Valid @RequestBody BirthdateDTO dto,
-																@CookieValue(name = "refreshToken") String refreshToken) {
+	public ResponseEntity<ApiResponse<Object>> setUserBirthdate(@CookieValue(name = "refreshToken", required = false) String refreshToken,
+																@Valid @RequestBody BirthdateDTO dto) {
 		return userService.setUserBirthdate(dto, refreshToken);
 	}
 
 	@PatchMapping(patchUserCaliStartDateUrl)
-	public ResponseEntity<ApiResponse<Object>> setUserCaliStartDate(@Valid @RequestBody CaliStartDateDTO dto,
-																	@CookieValue(name = "refreshToken") String refreshToken){
+	public ResponseEntity<ApiResponse<Object>> setUserCaliStartDate(@CookieValue(name = "refreshToken", required = false) String refreshToken,
+																	@Valid @RequestBody CaliStartDateDTO dto) {
 		return userService.setUserCaliStartDate(dto, refreshToken);
 	}
 }

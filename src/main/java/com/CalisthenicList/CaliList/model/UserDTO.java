@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -19,8 +17,8 @@ public class UserDTO {
 	private String email;
 	private Roles role;
 	private boolean emailVerified;
-	private LocalDate birthDate;
-	private Map<String, Object> userData;
+	private LocalDate birthdate;
+	private LocalDate caliStartDate;
 
 	public UserDTO(User user) {
 		this.id = user.getId();
@@ -28,10 +26,7 @@ public class UserDTO {
 		this.email = user.getEmail();
 		this.role = user.getRole();
 		this.emailVerified = user.isEmailVerified();
-		this.birthDate = user.getBirthDate();
-
-		Map<String, Object> data = new HashMap<>();
-		data.put("caliStartDate", user.getCaliStartDate());
-		this.userData = data;
+		this.birthdate = user.getBirthdate();
+		this.caliStartDate = user.getCaliStartDate();
 	}
 }

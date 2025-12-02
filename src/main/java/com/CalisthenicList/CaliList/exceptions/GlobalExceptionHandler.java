@@ -26,13 +26,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(UserRegistrationException.class)
 	public ResponseEntity<ApiResponse<Object>> handleUserRegistration(UserRegistrationException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
-		List<String> error = new ArrayList<>();
-		error.add(ex.getMessage());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(
 				ApiResponse.builder()
 						.success(false)
 						.message(ex.getMessage())
-						.data(error)
+						.data(ex.getErrors())
 						.build()
 		);
 	}

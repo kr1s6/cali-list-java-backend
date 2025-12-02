@@ -16,7 +16,7 @@ import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 public class UserRegistrationDTO {
 
 	@Size(min = USERNAME_MIN_LENGTH, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
-	@NotBlank(message = Messages.USERNAME_NOT_BLANK_ERROR)
+	@NotBlank(message = Messages.USERNAME_LENGTH_ERROR)
 	private String username;
 
 	@Email(message = Messages.EMAIL_INVALID_ERROR)

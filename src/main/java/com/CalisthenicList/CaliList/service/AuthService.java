@@ -45,7 +45,6 @@ public class AuthService {
 			throw new RuntimeException(Messages.PASSWORD_ENCODING_FAILED);
 		}
 
-		//Save user to DB
 		User user = new User(userDto.getUsername(), userDto.getEmail(), encodedPassword);
 		userRepository.save(user);
 
@@ -121,7 +120,6 @@ public class AuthService {
 						.data("Email send successfully.")
 						.build()
 		);
-
 	}
 
 	public ResponseEntity<ApiResponse<Object>> passwordRecovery(String jwt, @Valid PasswordRecoveryDTO passwordRecoveryDTO) {

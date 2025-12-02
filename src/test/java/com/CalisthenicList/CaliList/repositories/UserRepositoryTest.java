@@ -187,7 +187,7 @@ class UserRepositoryTest {
 			// When Then
 			ConstraintViolationException exception = assertThrows(ConstraintViolationException.class, () -> userRepository.saveAndFlush(user));
 			String message = exception.getConstraintViolations().iterator().next().getMessage();
-			assertEquals(Messages.USERNAME_NOT_BLANK_ERROR, message, "Wrong error message.");
+			assertEquals(Messages.USERNAME_LENGTH_ERROR, message, "Wrong error message.");
 		}
 
 		@Test
@@ -321,7 +321,7 @@ class UserRepositoryTest {
 		@DisplayName("✅ Happy Case: User with valid birthday saved successfully")
 		void givenValidUserWithBirthday_whenSave_thenSuccess() {
 			// Given
-			user.setBirthDate(LocalDate.of(1990, 1, 1));
+			user.setBirthdate(LocalDate.of(1990, 1, 1));
 			// When Then
 			assertDoesNotThrow(() -> {
 				userRepository.saveAndFlush(user);
@@ -332,7 +332,7 @@ class UserRepositoryTest {
 		@DisplayName("❌ Negative Case: Birthdate must be in the past")
 		void givenFutureBirthDate_whenSave_thenThrowException() {
 			// Given
-			user.setBirthDate(LocalDate.now().plusDays(1));
+			user.setBirthdate(LocalDate.now().plusDays(1));
 			// When Then
 			ConstraintViolationException exception = assertThrows(ConstraintViolationException.class, () -> userRepository.saveAndFlush(user));
 			String message = exception.getConstraintViolations().iterator().next().getMessage();

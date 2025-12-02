@@ -78,7 +78,7 @@ public class UserControllerTest {
 
 	@Nested
 	@DisplayName("/delete/{id}")
-	class Delete {
+	class DeleteUserTest {
 		private String deleteUserByIdUrl;
 
 		@BeforeEach
@@ -142,25 +142,119 @@ public class UserControllerTest {
 					.then()
 					.statusCode(HttpStatus.BAD_REQUEST.value());
 		}
-
-		//	@Test
-		//	@DisplayName("❌ Negative Case: You can't send more than 5 DELETE requests during 1 min.")
-		//	void givenFiveDeleteRequestsDuringOneMin_WhenSendingSixthRequest_ThenRateLimitingFilterRejectsRequest() {
-		//		// Given
-		//		String deleteUserUrl = "http://localhost:" + port + "/delete/" + UUID.randomUUID();
-		//		headers.set("X-Forwarded-For", "10.0.0.5");
-		//		HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-		//		ResponseEntity<String> response;
-		//		for(int i = 0; i < MAX_HEAVY_REQUESTS_PER_MINUTE; i++) {
-		//			response = testRestTemplate.exchange(deleteUserUrl, HttpMethod.DELETE, requestEntity, String.class);
-		//			assertTrue(response.getStatusCode().is4xxClientError());
-		//		}
-		//		// When
-		//		response = testRestTemplate.exchange(deleteUserUrl, HttpMethod.DELETE, requestEntity, String.class);
-		//		// Then
-		//		assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS),
-		//				"Warning! Too many requests passed for the user during 1 minute. Code: " + response.getStatusCode());
-		//	}
 	}
 
+	@Nested
+	@DisplayName("/set-user-birthday")
+	class PatchUserBirthdateTest {
+		private String patchUserBirthdateUrl;
+
+		@BeforeEach
+		void initEach() {
+			patchUserBirthdateUrl = "http://localhost:" + port + UserController.patchUserBirthdateUrl;
+		}
+
+		@Test
+		@DisplayName("✅ Happy Case: Set user's birthdate successfully")
+		void givenValidBirthdate_WhenPatch_ThenReturnOk() {
+			Map<String, Object> body = Map.of("birthdate", "1990-05-01");
+			RestAssured.given()
+					.headers(headers)
+					.cookie("refreshToken", findRefTokenByEmail().map(RefreshToken::getToken).orElseThrow())
+					.body(body)
+					.when()
+					.patch(patchUserBirthdateUrl)
+					.then()
+					.statusCode(HttpStatus.OK.value())
+					.body("success", Matchers.equalTo(true))
+					.body("message", Matchers.equalTo("Birthday set."))
+					.body("data.birthdate", Matchers.equalTo("1990-05-01"))
+					.body("accessToken", Matchers.notNullValue());
+		}
+
+		@Test
+		@DisplayName("❌ Negative Case: Invalid refresh token returns INTERNAL_SERVER_ERROR")
+		void givenInvalidToken_WhenPatch_ThenReturnNotFound() {
+			Map<String, Object> body = Map.of("birthdate", "1990-05-01");
+			RestAssured.given()
+					.headers(headers)
+					.cookie("refreshToken", "invalidToken")
+					.body(body)
+					.when()
+					.patch(patchUserBirthdateUrl)
+					.then()
+					.statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
+
+		@Test
+		@DisplayName("✅ Negative Case: Missing birthdate in request body ")
+		void givenMissingBirthdate_WhenPatch_ThenReturnBadRequest() {
+			Map<String, Object> body = Map.of();
+			RestAssured.given()
+					.headers(headers)
+					.cookie("refreshToken", findRefTokenByEmail().map(RefreshToken::getToken).orElseThrow())
+					.body(body)
+					.when()
+					.patch(patchUserBirthdateUrl)
+					.then()
+					.statusCode(HttpStatus.BAD_REQUEST.value());
+		}
+	}
+
+	@Nested
+	@DisplayName("/set-user-cali-start-day")
+	class PatchUserCaliStartDateTest {
+		private String patchUserCaliStartDateUrl;
+
+		@BeforeEach
+		void initEach() {
+			patchUserCaliStartDateUrl = "http://localhost:" + port + UserController.patchUserCaliStartDateUrl;
+		}
+
+		@Test
+		@DisplayName("✅ Happy Case: Set user's cali start date successfully")
+		void givenValidCaliStartDate_WhenPatch_ThenReturnOk() {
+			Map<String, Object> body = Map.of("caliStartDate", "2020-01-01");
+			RestAssured.given()
+					.headers(headers)
+					.cookie("refreshToken", findRefTokenByEmail().map(RefreshToken::getToken).orElseThrow())
+					.body(body)
+					.when()
+					.patch(patchUserCaliStartDateUrl)
+					.then()
+					.statusCode(HttpStatus.OK.value())
+					.body("success", Matchers.equalTo(true))
+					.body("message", Matchers.equalTo("Cali start date set."))
+					.body("data.caliStartDate", Matchers.equalTo("2020-01-01"))
+					.body("accessToken", Matchers.notNullValue());
+		}
+
+		@Test
+		@DisplayName("❌ Negative Case: Invalid refresh token returns INTERNAL_SERVER_ERROR")
+		void givenInvalidToken_WhenPatch_ThenReturnNotFound() {
+			Map<String, Object> body = Map.of("caliStartDate", "2020-01-01");
+			RestAssured.given()
+					.headers(headers)
+					.cookie("refreshToken", "invalidToken")
+					.body(body)
+					.when()
+					.patch(patchUserCaliStartDateUrl)
+					.then()
+					.statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+		}
+
+		@Test
+		@DisplayName("❌ Negative Case: Missing caliStartDate in request body returns BAD_REQUEST")
+		void givenMissingCaliStartDate_WhenPatch_ThenReturnBadRequest() {
+			Map<String, Object> body = Map.of();
+			RestAssured.given()
+					.headers(headers)
+					.cookie("refreshToken", findRefTokenByEmail().map(RefreshToken::getToken).orElseThrow())
+					.body(body)
+					.when()
+					.patch(patchUserCaliStartDateUrl)
+					.then()
+					.statusCode(HttpStatus.BAD_REQUEST.value());
+		}
+	}
 }

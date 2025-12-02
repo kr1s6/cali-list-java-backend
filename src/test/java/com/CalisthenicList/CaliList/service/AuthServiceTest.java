@@ -1,7 +1,6 @@
 package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
-import com.CalisthenicList.CaliList.enums.Roles;
 import com.CalisthenicList.CaliList.exceptions.UserRegistrationException;
 import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.repositories.UserRepository;

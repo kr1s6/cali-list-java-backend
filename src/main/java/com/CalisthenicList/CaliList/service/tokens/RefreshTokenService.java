@@ -4,8 +4,10 @@ import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.RefreshToken;
 import com.CalisthenicList.CaliList.model.User;
+import com.CalisthenicList.CaliList.model.UserDTO;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
+import com.CalisthenicList.CaliList.service.UserService;
 import com.CalisthenicList.CaliList.utils.JwtUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
@@ -105,11 +107,22 @@ public class RefreshTokenService {
 		//Create a new refresh token
 		ResponseCookie cookieWithRefreshToken = createCookieWithRefreshToken(jwtEmail);
 		response.addHeader(HttpHeaders.SET_COOKIE, cookieWithRefreshToken.toString());
+
 		// Create a new access token
 		String accessToken = accessTokenService.generateAccessToken(jwtEmail);
+
+		//Validate if user exists
+		User user = userRepository.findByEmail(userEmail)
+				.orElseThrow(() -> new UsernameNotFoundException(Messages.UNAUTHORIZED));
+		//Update user
+		user.setTrainingDuration(UserService.calculateTrainingDuration(user.getCaliStartDate()));
+
+		//Return userDTO with an access token
+		UserDTO userDTO = new UserDTO(user);
 		return ResponseEntity.ok(ApiResponse.builder()
 						.success(true)
 						.message(Messages.REFRESH_TOKEN_SUCCESS)
+						.data(userDTO)
 						.accessToken(accessToken)
 						.build());
 	}

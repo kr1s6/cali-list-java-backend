@@ -1,4 +1,5 @@
 package com.CalisthenicList.CaliList.service.tokens;
+import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.RefreshToken;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
@@ -124,7 +125,7 @@ class RefreshTokenServiceTest {
 	@DisplayName("refreshAccessToken")
 	class RefreshAccessTokenTest {
 
-		private ResponseEntity<?> refreshAccessToken(String token, HttpServletResponse response) {
+		private ResponseEntity<ApiResponse<Object>> refreshAccessToken(String token, HttpServletResponse response) {
 			return refreshTokenService.refreshAccessToken(token, response);
 		}
 
@@ -184,12 +185,12 @@ class RefreshTokenServiceTest {
 			when(refreshTokenRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(refreshToken));
 			when(refreshTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 			//When
-			ResponseEntity<?> response = refreshAccessToken(refreshToken.getToken(), httpResponse);
+			ResponseEntity<ApiResponse<Object>> response = refreshAccessToken(refreshToken.getToken(), httpResponse);
 			//Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
-			Map<String, String> body = (Map<String, String>) response.getBody();
-			assertEquals("new.access.token", body.get("accessToken"));
+			ApiResponse<Object> responseBody = response.getBody();
+			assertEquals("new.access.token", responseBody.getAccessToken());
 			verify(httpResponse).addHeader(eq(HttpHeaders.SET_COOKIE), contains("refreshToken="));
 		}
 	}

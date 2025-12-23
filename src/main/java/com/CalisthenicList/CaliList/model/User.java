@@ -37,7 +37,7 @@ public class User implements UserDetails {
 	private UUID id;
 
 	@Size(min = USERNAME_MIN_LENGTH, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
-	@NotBlank(message = Messages.USERNAME_NOT_BLANK_ERROR)
+	@NotBlank(message = Messages.USERNAME_LENGTH_ERROR)
 	@Column(nullable = false, unique = true, length = USERNAME_MAX_LENGTH)
 	private String username;
 
@@ -59,7 +59,14 @@ public class User implements UserDetails {
 	private boolean emailVerified;
 
 	@Past(message = Messages.DATE_SHOULD_BE_PAST)
-	private LocalDate birthDate;
+	private LocalDate birthdate = null;
+
+	@Past(message = Messages.DATE_SHOULD_BE_PAST)
+	private LocalDate caliStartDate = null;
+
+	private String trainingDuration = null;
+
+	private String avatarKey = null;
 
 	@CreatedDate
 	@Column(nullable = false, updatable = false)
@@ -68,15 +75,13 @@ public class User implements UserDetails {
 	@LastModifiedDate
 	private Instant updatedDate;
 
-	@Past(message = Messages.DATE_SHOULD_BE_PAST)
-	private LocalDate caliStartDate;
-
 	public User(String username, String email, String password) {
 		this.username = username;
 		this.email = email;
 		this.password = password;
 		this.role = Roles.ROLE_USER;
 		this.emailVerified = false;
+		this.avatarKey = "defaults/avatar.png";
 	}
 
 	public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -97,6 +102,15 @@ public class User implements UserDetails {
 
 	public boolean isAccountNonExpired() {
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "User{" +
+				"username='" + username + '\'' +
+				", email='" + email + '\'' +
+				", password='" + password + '\'' +
+				'}';
 	}
 }
 

@@ -94,7 +94,10 @@ public class AuthService {
 		//Create an access token
 		String accessToken = accessTokenService.generateAccessToken(userEmail);
 
-		//Return userDTO with an access token
+		//Update user
+		user.setTrainingDuration(UserService.calculateTrainingDuration(user.getCaliStartDate()));
+
+		//Return apiResponse
 		logger.info(Messages.LOGIN_SUCCESS);
 		UserDTO userDTO = new UserDTO(user);
 		return ResponseEntity.ok(

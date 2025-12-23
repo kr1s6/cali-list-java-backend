@@ -1,9 +1,6 @@
 package com.CalisthenicList.CaliList.controller;
 
-import com.CalisthenicList.CaliList.model.ApiResponse;
-import com.CalisthenicList.CaliList.model.BirthdateDTO;
-import com.CalisthenicList.CaliList.model.CaliStartDateDTO;
-import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
+import com.CalisthenicList.CaliList.model.*;
 import com.CalisthenicList.CaliList.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +17,7 @@ public class UserController {
 	public static final String deleteUserByIdUrl = "/api/deleteUser";
 	public static final String patchUserBirthdateUrl = "/api/set-user-birthdate";
 	public static final String patchUserCaliStartDateUrl = "/api/set-user-cali-start-date";
+	public static final String patchUserSettingsUrl = "/api/set-user-settings";
 	private final UserService userService;
 
 	@DeleteMapping(deleteUserByIdUrl)
@@ -39,5 +37,11 @@ public class UserController {
 	public ResponseEntity<ApiResponse<Object>> setUserCaliStartDate(@CookieValue(name = "refreshToken", required = false) String refreshToken,
 																	@Valid @RequestBody CaliStartDateDTO dto) {
 		return userService.setUserCaliStartDate(dto, refreshToken);
+	}
+
+	@PatchMapping(patchUserSettingsUrl)
+	public ResponseEntity<ApiResponse<Object>> setUserSettings(@CookieValue(name = "refreshToken", required = false) String refreshToken,
+																@Valid @RequestBody UserSettingsDTO dto) {
+		return userService.setUserSettings(dto, refreshToken);
 	}
 }

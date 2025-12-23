@@ -20,6 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <jjwt.version>0.13.0</jjwt.version>
+        <springframework.version>4.0.1</springframework.version>
     </properties>
 
     <dependencies>
@@ -33,6 +34,7 @@
             <!--INFO Spring Data JPA (Hibernate): caching, lazy loading, complex relationships-->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <version>${springframework.version}</version>
         </dependency>
         <dependency>
             <!--INFO - enables constraint annotations (e.g., @NotNull, @Email) for model/DTO data.
@@ -45,6 +47,7 @@
             <!--INFO Starter for building web, RESTful, Spring MVC. Uses Tomcat as the default embedded container-->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <version>${springframework.version}</version>
         </dependency>
 
 
@@ -52,6 +55,7 @@
             <!--INFO - Spring Security-->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+            <version>${springframework.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -122,6 +126,7 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
+            <version>6.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

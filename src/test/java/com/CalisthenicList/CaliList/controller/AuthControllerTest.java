@@ -214,7 +214,7 @@ class AuthControllerTest {
 					.body("data.email", Matchers.equalTo(initEmail))
 					.body("data.emailVerified", Matchers.equalTo(false))
 					.body("data.birthDate", Matchers.nullValue())
-					.body("data.userData.caliStartDate", Matchers.nullValue());
+					.body("data.caliStartDate", Matchers.nullValue());
 		}
 
 		@Test

@@ -189,7 +189,7 @@ class UserServiceTest {
 			assertEquals("Cali start date set.", response.getBody().getMessage());
 			assertEquals("newAccessToken", response.getBody().getAccessToken());
 			UserDTO responseUserDTO = (UserDTO) response.getBody().getData();
-			assertEquals(user.getCaliStartDate(), responseUserDTO.getCaliStartDate());
+			assertEquals(user.getTrainingDuration(), responseUserDTO.getTrainingDuration());
 			verify(userRepository).save(user);
 		}
 

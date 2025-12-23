@@ -226,7 +226,7 @@ class AuthServiceTest {
 		}
 
 		@Test
-		@DisplayName("✅ Happy Case: User registered with valid credentials")
+		@DisplayName("✅ Happy Case: User logged with valid credentials")
 		void givenValidUserDTO_whenRegister_thenReturnUserRegisteredSuccess() {
 			// Given
 			User user = new User("TestUser", "test@intera.pl", password);

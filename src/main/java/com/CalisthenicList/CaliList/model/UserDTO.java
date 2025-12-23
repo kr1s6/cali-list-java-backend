@@ -18,7 +18,8 @@ public class UserDTO {
 	private Roles role;
 	private boolean emailVerified;
 	private LocalDate birthdate;
-	private LocalDate caliStartDate;
+	private String trainingDuration;
+	private String avatarKey;
 
 	public UserDTO(User user) {
 		this.id = user.getId();
@@ -27,6 +28,7 @@ public class UserDTO {
 		this.role = user.getRole();
 		this.emailVerified = user.isEmailVerified();
 		this.birthdate = user.getBirthdate();
-		this.caliStartDate = user.getCaliStartDate();
+		this.trainingDuration = user.getTrainingDuration();
+		this.avatarKey = user.getAvatarKey();
 	}
 }

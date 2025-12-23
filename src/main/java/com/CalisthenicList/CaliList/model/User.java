@@ -64,6 +64,10 @@ public class User implements UserDetails {
 	@Past(message = Messages.DATE_SHOULD_BE_PAST)
 	private LocalDate caliStartDate = null;
 
+	private String trainingDuration = null;
+
+	private String avatarKey = null;
+
 	@CreatedDate
 	@Column(nullable = false, updatable = false)
 	private Instant createdDate;
@@ -77,6 +81,7 @@ public class User implements UserDetails {
 		this.password = password;
 		this.role = Roles.ROLE_USER;
 		this.emailVerified = false;
+		this.avatarKey = "defaults/avatar.png";
 	}
 
 	public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -97,6 +102,15 @@ public class User implements UserDetails {
 
 	public boolean isAccountNonExpired() {
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "User{" +
+				"username='" + username + '\'' +
+				", email='" + email + '\'' +
+				", password='" + password + '\'' +
+				'}';
 	}
 }
 

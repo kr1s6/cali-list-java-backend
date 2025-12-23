@@ -18,10 +18,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.CalisthenicList.CaliList.service.UserService.calculateTrainingDuration;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -215,6 +217,9 @@ public class UserControllerTest {
 		@DisplayName("✅ Happy Case: Set user's cali start date successfully")
 		void givenValidCaliStartDate_WhenPatch_ThenReturnOk() {
 			Map<String, Object> body = Map.of("caliStartDate", "2020-01-01");
+			LocalDate start = LocalDate.parse("2020-01-01");
+			String expectedTrainingDuration = calculateTrainingDuration(start);
+
 			RestAssured.given()
 					.headers(headers)
 					.cookie("refreshToken", findRefTokenByEmail().map(RefreshToken::getToken).orElseThrow())
@@ -225,7 +230,7 @@ public class UserControllerTest {
 					.statusCode(HttpStatus.OK.value())
 					.body("success", Matchers.equalTo(true))
 					.body("message", Matchers.equalTo("Cali start date set."))
-					.body("data.caliStartDate", Matchers.equalTo("2020-01-01"))
+					.body("data.trainingDuration", Matchers.equalTo(expectedTrainingDuration))
 					.body("accessToken", Matchers.notNullValue());
 		}
 

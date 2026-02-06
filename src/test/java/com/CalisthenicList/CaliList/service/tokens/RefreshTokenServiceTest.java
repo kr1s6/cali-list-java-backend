@@ -4,7 +4,7 @@ import com.CalisthenicList.CaliList.model.RefreshToken;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +23,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,7 +36,7 @@ class RefreshTokenServiceTest {
 	@Mock
 	private AccessTokenService accessTokenService;
 	@Mock
-	private JwtUtils jwtUtils;
+	private JwtService jwtUtils;
 	@Mock
 	private RefreshTokenRepository refreshTokenRepository;
 	@Mock
@@ -49,6 +48,10 @@ class RefreshTokenServiceTest {
 	private final Instant duration = Instant.now().plus(Duration.ofDays(30));
 	private User user;
 	private RefreshToken refreshToken;
+
+	private String generateJwt(String subject, Duration jwtDuration) {
+		return jwtUtils.buildJwt(subject, jwtDuration);
+	}
 
 	@BeforeEach
 	void setUp() {
@@ -66,7 +69,7 @@ class RefreshTokenServiceTest {
 		void givenUser_whenCreateCookieWithRefreshToken_thenReturnCookie() {
 			// Given
 			String jwt = "jwt.token";
-			when(jwtUtils.generateJwt(eq(user.getEmail()), any())).thenReturn(jwt);
+			when(generateJwt(eq(user.getEmail()), any())).thenReturn(jwt);
 			when(refreshTokenRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.empty());
 			when(refreshTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 			// When
@@ -93,7 +96,7 @@ class RefreshTokenServiceTest {
 		void givenNoExistingToken_whenCreateRefreshToken_thenNewTokenSaved() {
 			// Given
 			String jwt = "new.jwt.token";
-			when(jwtUtils.generateJwt(eq(user.getEmail()), any())).thenReturn(jwt);
+			when(generateJwt(eq(user.getEmail()), any())).thenReturn(jwt);
 			when(refreshTokenRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.empty());
 			when(refreshTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 			// When
@@ -110,7 +113,7 @@ class RefreshTokenServiceTest {
 		void givenExistingToken_whenCreateRefreshToken_thenUpdateAndSave() {
 			// Given
 			when(refreshTokenRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(refreshToken));
-			when(jwtUtils.generateJwt(eq(user.getEmail()), any())).thenReturn("updated.jwt.token");
+			when(generateJwt(eq(user.getEmail()), any())).thenReturn("updated.jwt.token");
 			when(refreshTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 			// When
 			RefreshToken updated = createRefreshToken(user.getEmail(), user);
@@ -127,6 +130,10 @@ class RefreshTokenServiceTest {
 
 		private ResponseEntity<ApiResponse<Object>> refreshAccessToken(String token, HttpServletResponse response) {
 			return refreshTokenService.refreshAccessToken(token, response);
+		}
+
+		private boolean validateIfJwtSubjectMatchTheUser(String jwtSubject, String email) {
+			return jwtUtils.validateIfJwtSubjectMatchTheUser(jwtSubject, email);
 		}
 
 		@Test
@@ -149,7 +156,7 @@ class RefreshTokenServiceTest {
 			//Given
 			when(refreshTokenRepository.findByToken(refreshToken.getToken())).thenReturn(Optional.of(refreshToken));
 			when(jwtUtils.extractSubject(refreshToken.getToken())).thenReturn("other@example.com");
-			when(jwtUtils.validateIfJwtSubjectMatchTheUser("other@example.com", user.getEmail())).thenReturn(false);
+			when(validateIfJwtSubjectMatchTheUser("other@example.com", user.getEmail())).thenReturn(false);
 			//When
 			ResponseEntity<?> response = refreshAccessToken(refreshToken.getToken(), httpResponse);
 			//Then
@@ -164,7 +171,7 @@ class RefreshTokenServiceTest {
 					Instant.now().minus(Duration.ofDays(1)));
 			when(refreshTokenRepository.findByToken(expired.getToken())).thenReturn(Optional.of(expired));
 			when(jwtUtils.extractSubject(expired.getToken())).thenReturn(user.getEmail());
-			when(jwtUtils.validateIfJwtSubjectMatchTheUser(user.getEmail(), user.getEmail())).thenReturn(true);
+			when(validateIfJwtSubjectMatchTheUser(user.getEmail(), user.getEmail())).thenReturn(true);
 			//When
 			ResponseEntity<?> response = refreshAccessToken(expired.getToken(), httpResponse);
 			//Then
@@ -178,10 +185,10 @@ class RefreshTokenServiceTest {
 			//Given
 			when(refreshTokenRepository.findByToken(refreshToken.getToken())).thenReturn(Optional.of(refreshToken));
 			when(jwtUtils.extractSubject(refreshToken.getToken())).thenReturn(user.getEmail());
-			when(jwtUtils.validateIfJwtSubjectMatchTheUser(user.getEmail(), user.getEmail())).thenReturn(true);
+			when(validateIfJwtSubjectMatchTheUser(user.getEmail(), user.getEmail())).thenReturn(true);
 			when(accessTokenService.generateAccessToken(user.getEmail())).thenReturn("new.access.token");
 			when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-			when(jwtUtils.generateJwt(any(), any())).thenReturn("new.refresh.jwt");
+			when(generateJwt(any(), any())).thenReturn("new.refresh.jwt");
 			when(refreshTokenRepository.findByUserEmail(user.getEmail())).thenReturn(Optional.of(refreshToken));
 			when(refreshTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 			//When
@@ -190,7 +197,7 @@ class RefreshTokenServiceTest {
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
 			ApiResponse<Object> responseBody = response.getBody();
-			assertEquals("new.access.token", responseBody.getAccessToken());
+			assertEquals("new.access.token", responseBody.accessToken());
 			verify(httpResponse).addHeader(eq(HttpHeaders.SET_COOKIE), contains("refreshToken="));
 		}
 	}

@@ -2,6 +2,7 @@ package com.CalisthenicList.CaliList.exceptions;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,11 @@ public class GlobalExceptionHandler {
 		);
 	}
 
-	//Handle errors during login
+	/**
+	 * Handle errors during login
+	 * @param ex
+	 * @return {@link ApiResponse}
+	 */
 	@ExceptionHandler(UsernameNotFoundException.class)
 	public ResponseEntity<ApiResponse<Object>> handleUserNotFound(UsernameNotFoundException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
@@ -60,7 +64,11 @@ public class GlobalExceptionHandler {
 		);
 	}
 
-	//Handle errors thrown by @Valid annotation
+	/**
+	 * Handle errors thrown by @Valid annotation
+	 * @param ex
+	 * @return {@link ApiResponse} with a list of validation errors
+	 */
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiResponse<Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
 		logger.log(Level.WARNING, ex.getMessage(), ex);
@@ -78,14 +86,35 @@ public class GlobalExceptionHandler {
 		);
 	}
 
-	//Handle unexpected errors and INTERNAL_SERVER_ERRORS
+	/**
+	 * Handle JWT errors
+	 * @param ex Error data
+	 * @return Error message
+	 */
+	@ExceptionHandler(JwtException.class)
+	public ResponseEntity<ApiResponse<Object>> handleJwtExceptions(JwtException ex) {
+		logger.log(Level.WARNING, ex.getMessage(), ex);
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+				ApiResponse.builder()
+						.success(false)
+						.message(ex.getMessage())
+						.build()
+		);
+	}
+
+	/**
+	 * Handle unexpected errors and INTERNAL_SERVER_ERRORS
+	 * @param ex Error data
+	 * @return {@link ApiResponse}
+	 */
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiResponse<Object>> handleUnpredictedExceptions(Exception ex) {
 		logger.log(Level.SEVERE, ex.getMessage(), ex);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
 				ApiResponse.builder()
 						.success(false)
-						.message(ex.getMessage())
+						.message("Internal server error")
+						.data(ex.getMessage())
 						.build()
 		);
 	}

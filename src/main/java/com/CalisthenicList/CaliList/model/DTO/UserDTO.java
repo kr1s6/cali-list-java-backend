@@ -1,18 +1,18 @@
-package com.CalisthenicList.CaliList.model;
+package com.CalisthenicList.CaliList.model.DTO;
 
 import com.CalisthenicList.CaliList.enums.Roles;
+import com.CalisthenicList.CaliList.model.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserDTO {
-	private UUID id;
+	private Long id;
 	private String username;
 	private String email;
 	private Roles role;

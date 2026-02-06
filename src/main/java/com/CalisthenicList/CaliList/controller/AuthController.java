@@ -1,6 +1,7 @@
 package com.CalisthenicList.CaliList.controller;
 
 import com.CalisthenicList.CaliList.model.*;
+import com.CalisthenicList.CaliList.model.DTO.*;
 import com.CalisthenicList.CaliList.service.AuthService;
 import com.CalisthenicList.CaliList.service.EmailService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
@@ -12,14 +13,15 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("api/v1")
 public class AuthController {
-	public static final String registerUrl = "/api/register";
-	public static final String loginUrl = "/api/login";
-	public static final String sendPasswordRecoveryRequestUrl = "/api/password-recovery";
-	public static final String passwordRecoveryUrl = "/api/password-recovery/{token}";
-	public static final String logoutUrl = "/api/logout";
-	public static final String emailVerificationUrl = "/api/email-verification/{token}";
-	public static final String refreshTokenUrl = "/api/refreshToken";
+	public static final String registerUrl = "/register";
+	public static final String loginUrl = "/login";
+	public static final String sendPasswordRecoveryRequestUrl = "/password-recovery";
+	public static final String passwordRecoveryUrl = "/password-recovery/{token}";
+	public static final String logoutUrl = "/logout";
+	public static final String emailVerificationUrl = "/email-verification/{token}";
+	public static final String refreshTokenUrl = "/refreshToken";
 	private final AuthService authService;
 	private final EmailService emailService;
 	private final RefreshTokenService refreshTokenService;
@@ -27,12 +29,12 @@ public class AuthController {
 	@PostMapping(registerUrl)
 	//INFO registration request require Unique username, Unique email, password
 	public ResponseEntity<ApiResponse<Object>> registerUser(@Valid @RequestBody UserRegistrationDTO userDto,
-															HttpServletResponse response) {
+															 HttpServletResponse response) {
 		return authService.registerUser(userDto, response);
 	}
 
 	@PostMapping(sendPasswordRecoveryRequestUrl)
-	//INFO send on email the url to recover password
+	//INFO send to the email the link to recover password
 	public ResponseEntity<ApiResponse<Object>> sendRecoverPasswordEmail(@Valid @RequestBody EmailDTO emailDTO) {
 		return authService.sendPasswordRecoveryEmail(emailDTO);
 	}

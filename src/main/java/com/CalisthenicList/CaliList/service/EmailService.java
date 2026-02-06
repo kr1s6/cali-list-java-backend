@@ -2,11 +2,11 @@ package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
-import com.CalisthenicList.CaliList.model.EmailDTO;
+import com.CalisthenicList.CaliList.model.DTO.EmailDTO;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -35,7 +35,7 @@ public class EmailService {
 	private final Logger logger = Logger.getLogger(EmailService.class.getName());
 	private final JavaMailSender javaMailSender; //INFO - JavaMailSender @Bean is loaded automatically with "spring.mail" properties
 	private final UserRepository userRepository;
-	private final JwtUtils jwtUtils;
+	private final JwtService jwtUtils;
 	private final AccessTokenService accessTokenService;
 
 	@Async

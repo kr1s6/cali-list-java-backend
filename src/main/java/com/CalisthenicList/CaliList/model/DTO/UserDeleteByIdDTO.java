@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.model;
+package com.CalisthenicList.CaliList.model.DTO;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import jakarta.validation.constraints.NotBlank;
@@ -8,15 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserDeleteByIdDTO {
 	@NotNull(message = "ID must not be null.")
-	private UUID userId;
+	private Long userId;
 	@NotBlank(message = Messages.PASSWORD_NOT_BLANK_ERROR)
 	private String password;
 }

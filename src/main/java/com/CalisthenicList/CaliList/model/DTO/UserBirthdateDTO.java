@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.model;
+package com.CalisthenicList.CaliList.model.DTO;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import jakarta.validation.constraints.NotNull;
@@ -10,8 +10,8 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class CaliStartDateDTO {
+public class UserBirthdateDTO {
 	@Past(message = Messages.DATE_SHOULD_BE_PAST)
 	@NotNull(message = Messages.INVALID_INPUT)
-	private LocalDate caliStartDate;
+	private LocalDate birthdate;
 }

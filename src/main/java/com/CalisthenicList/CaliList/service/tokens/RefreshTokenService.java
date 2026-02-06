@@ -4,11 +4,11 @@ import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.RefreshToken;
 import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserDTO;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.UserService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class RefreshTokenService {
 	@Value("${refreshToken.expiration.days}")
 	private int refreshTokenDuration;
 	private final AccessTokenService accessTokenService;
-	private final JwtUtils jwtUtils;
+	private final JwtService jwtUtils;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final UserRepository userRepository;
 	private Duration tokenDuration;
@@ -59,7 +59,7 @@ public class RefreshTokenService {
 	}
 
 	public RefreshToken createRefreshToken(String email, User user) {
-		String jwt = jwtUtils.generateJwt(email, tokenDuration);
+		String jwt = jwtUtils.buildJwt(email, tokenDuration);
 		//Update or create a refresh token
 		RefreshToken token = refreshTokenRepository.findByUserEmail(email)
 				.map(exists -> {

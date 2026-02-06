@@ -3,10 +3,11 @@ package com.CalisthenicList.CaliList.service;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.exceptions.UserRegistrationException;
 import com.CalisthenicList.CaliList.model.*;
+import com.CalisthenicList.CaliList.model.DTO.*;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class AuthService {
 	private final EmailService emailService;
 	private final RefreshTokenService refreshTokenService;
 	private final AccessTokenService accessTokenService;
-	private final JwtUtils jwtUtils;
+	private final JwtService jwtService;
 
 	public ResponseEntity<ApiResponse<Object>> registerUser(UserRegistrationDTO userDto, HttpServletResponse response) {
 		//Validate user input
@@ -40,7 +41,7 @@ public class AuthService {
 		//Encode password
 		String rawPassword = userDto.getPassword();
 		String encodedPassword = encoder.encode(rawPassword);
-		if(encodedPassword.equals(rawPassword)) {
+		if(rawPassword.equals(encodedPassword)) {
 			logger.severe(Messages.PASSWORD_ENCODING_FAILED);
 			throw new RuntimeException(Messages.PASSWORD_ENCODING_FAILED);
 		}
@@ -127,7 +128,7 @@ public class AuthService {
 
 	public ResponseEntity<ApiResponse<Object>> passwordRecovery(String jwt, @Valid PasswordRecoveryDTO passwordRecoveryDTO) {
 		//Validate credentials
-		String userEmail = jwtUtils.extractSubject(jwt);
+		String userEmail = jwtService.extractSubject(jwt);
 		String rawPassword = passwordRecoveryDTO.getPassword();
 		String rawRepeatedPassword = passwordRecoveryDTO.getConfirmPassword();
 		boolean isValidRepeatablePassword = rawPassword.equals(rawRepeatedPassword);
@@ -145,7 +146,7 @@ public class AuthService {
 
 		//Encode password
 		String encodedPassword = encoder.encode(rawPassword);
-		if(encodedPassword.equals(rawPassword)) {
+		if(rawPassword.equals(encodedPassword)) {
 			logger.severe(Messages.PASSWORD_ENCODING_FAILED);
 			throw new RuntimeException(Messages.PASSWORD_ENCODING_FAILED);
 		}

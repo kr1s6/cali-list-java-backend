@@ -3,8 +3,8 @@ package com.CalisthenicList.CaliList.controller;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.RefreshToken;
 import com.CalisthenicList.CaliList.model.User;
-import com.CalisthenicList.CaliList.model.UserDeleteByIdDTO;
-import com.CalisthenicList.CaliList.model.UserRegistrationDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserDeleteByIdDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import io.restassured.RestAssured;
@@ -85,7 +85,7 @@ public class UserControllerTest {
 
 		@BeforeEach
 		void initEach() {
-			deleteUserByIdUrl = "http://localhost:" + port + UserController.deleteUserByIdUrl;
+			deleteUserByIdUrl = "http://localhost:" + port + UserController.deleteUserUrl;
 		}
 
 		@Test
@@ -153,7 +153,7 @@ public class UserControllerTest {
 
 		@BeforeEach
 		void initEach() {
-			patchUserBirthdateUrl = "http://localhost:" + port + UserController.patchUserBirthdateUrl;
+			patchUserBirthdateUrl = "http://localhost:" + port + UserController.updateUserBirthdateUrl;
 		}
 
 		@Test
@@ -210,7 +210,7 @@ public class UserControllerTest {
 
 		@BeforeEach
 		void initEach() {
-			patchUserCaliStartDateUrl = "http://localhost:" + port + UserController.patchUserCaliStartDateUrl;
+			patchUserCaliStartDateUrl = "http://localhost:" + port + UserController.updateUserCaliStartDateUrl;
 		}
 
 		@Test

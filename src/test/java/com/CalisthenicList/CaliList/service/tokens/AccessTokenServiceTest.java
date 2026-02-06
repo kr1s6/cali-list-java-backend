@@ -1,5 +1,5 @@
 package com.CalisthenicList.CaliList.service.tokens;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AccessTokenServiceTest {
 	@Mock
-	private JwtUtils jwtUtils;
+	private JwtService jwtUtils;
 	@InjectMocks
 	private AccessTokenService accessTokenService;
 	private final int durationOfMinutes = 30;
@@ -33,6 +33,10 @@ class AccessTokenServiceTest {
 		return accessTokenService.generateAccessToken(email);
 	}
 
+	private String generateJwt(String subject, Duration jwtDuration) {
+		return jwtUtils.buildJwt(subject, jwtDuration);
+	}
+
 	@Test
 	@DisplayName("✅ Happy Case: Create valid access token")
 	void givenEmail_whenGenerateAccessToken_thenDelegatesToJwtUtils() {
@@ -40,13 +44,13 @@ class AccessTokenServiceTest {
 		String email = "test@example.com";
 		String expectedToken = "header.payload.signature";
 		Duration expectedDuration = Duration.ofMinutes(durationOfMinutes);
-		when(jwtUtils.generateJwt(eq(email), eq(expectedDuration)))
+		when(generateJwt(eq(email), eq(expectedDuration)))
 				.thenReturn(expectedToken);
 		// When
 		String token = generateAccessToken(email);
 		// Then
 		assertEquals(expectedToken, token, "Access token should match the mocked JWT");
-		verify(jwtUtils, times(1)).generateJwt(eq(email), eq(expectedDuration));
+		verify(jwtUtils, times(1)).buildJwt(eq(email), eq(expectedDuration));
 	}
 
 	@Test
@@ -54,7 +58,7 @@ class AccessTokenServiceTest {
 	void givenJwtUtilsThrows_whenGenerateAccessToken_thenPropagateException() {
 		// Given
 		String email = "fail@example.com";
-		when(jwtUtils.generateJwt(anyString(), any()))
+		when(generateJwt(anyString(), any()))
 				.thenThrow(new IllegalStateException("JWT generation failed"));
 		// When / Then
 		assertThrows(IllegalStateException.class, () -> generateAccessToken(email),

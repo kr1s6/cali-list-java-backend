@@ -2,10 +2,11 @@ package com.CalisthenicList.CaliList.service;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.*;
+import com.CalisthenicList.CaliList.model.DTO.*;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,11 +27,11 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final PasswordEncoder encoder;
 	private final RefreshTokenRepository refreshTokenRepository;
-	private final JwtUtils jwtUtils;
+	private final JwtService jwtService;
 	private final AccessTokenService accessTokenService;
 
 	public ResponseEntity<ApiResponse<Object>> deleteUserById(UserDeleteByIdDTO userDeleteByIdDto) {
-		UUID id = userDeleteByIdDto.getUserId();
+		Long id = userDeleteByIdDto.getUserId();
 		//Validate if user exists
 		User user = userRepository.findById(id)
 				.orElseThrow(() -> {
@@ -56,8 +57,8 @@ public class UserService {
 		);
 	}
 
-	public ResponseEntity<ApiResponse<Object>> setUserBirthdate(@Valid BirthdateDTO dto, String refreshToken) {
-		String userEmail = jwtUtils.extractSubject(refreshToken);
+	public ResponseEntity<ApiResponse<Object>> setUserBirthdate(@Valid UserBirthdateDTO dto, String refreshToken) {
+		String userEmail = jwtService.extractSubject(refreshToken);
 		//Validate if user exists
 		User user = userRepository.findByEmail(userEmail)
 				.orElseThrow(() -> {
@@ -84,7 +85,7 @@ public class UserService {
 	}
 
 	public ResponseEntity<ApiResponse<Object>> setUserCaliStartDate(@Valid CaliStartDateDTO dto, String refreshToken) {
-		String userEmail = jwtUtils.extractSubject(refreshToken);
+		String userEmail = jwtService.extractSubject(refreshToken);
 		//Validate if user exists
 		User user = userRepository.findByEmail(userEmail)
 				.orElseThrow(() -> {
@@ -133,7 +134,7 @@ public class UserService {
 	}
 
 	public ResponseEntity<ApiResponse<Object>> setUserSettings(@Valid UserSettingsDTO dto, String refreshToken) {
-		String userEmail = jwtUtils.extractSubject(refreshToken);
+		String userEmail = jwtService.extractSubject(refreshToken);
 		//Validate if user exists
 		User user = userRepository.findByEmail(userEmail)
 				.orElseThrow(() -> {
@@ -141,7 +142,7 @@ public class UserService {
 					return new UsernameNotFoundException(Messages.USER_NOT_FOUND);
 				});
 
-		user.setUserAvatarPath(dto.getUserAvatarPath());
+		//user.setUserAvatarPath(dto.getUserAvatarPath());
 
 		//Create an access token
 		String accessToken = accessTokenService.generateAccessToken(userEmail);

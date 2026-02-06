@@ -21,7 +21,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 
@@ -33,8 +32,8 @@ import static com.CalisthenicList.CaliList.constants.UserConstants.*;
 @Table(name = "users")
 public class User implements UserDetails {
 	@Id
-	@GeneratedValue(strategy = GenerationType.UUID)
-	private UUID id;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
 	@Size(min = USERNAME_MIN_LENGTH, max = USERNAME_MAX_LENGTH, message = Messages.USERNAME_LENGTH_ERROR)
 	@NotBlank(message = Messages.USERNAME_LENGTH_ERROR)

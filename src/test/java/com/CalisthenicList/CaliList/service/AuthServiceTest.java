@@ -3,10 +3,13 @@ package com.CalisthenicList.CaliList.service;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.exceptions.UserRegistrationException;
 import com.CalisthenicList.CaliList.model.*;
+import com.CalisthenicList.CaliList.model.DTO.PasswordRecoveryDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserLoginDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserRegistrationDTO;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
 import com.CalisthenicList.CaliList.service.tokens.RefreshTokenService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +50,7 @@ class AuthServiceTest {
 	@Mock
 	private AccessTokenService accessTokenService;
 	@Mock
-	private JwtUtils jwtUtils;
+	private JwtService jwtService;
 	@InjectMocks
 	private AuthService authService;
 	private MockHttpServletResponse mockResponse;
@@ -107,9 +110,9 @@ class AuthServiceTest {
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.CREATED), "Registration should return CREATED");
 			ApiResponse<Object> responseBody = response.getBody();
 			assertNotNull(responseBody);
-			assertTrue(responseBody.isSuccess(), "Response should be successful.");
-			assertEquals(Messages.USER_REGISTERED_SUCCESS, responseBody.getMessage(), "Wrong message.");
-			assertEquals(fakeAccessToken, responseBody.getAccessToken(), "Access token not returned properly");
+			assertTrue(responseBody.success(), "Response should be successful.");
+			assertEquals(Messages.USER_REGISTERED_SUCCESS, responseBody.message(), "Wrong message.");
+			assertEquals(fakeAccessToken, responseBody.accessToken(), "Access token not returned properly");
 			//Validate refresh token in cookies
 			String setCookieHeader = mockResponse.getHeader(HttpHeaders.SET_COOKIE);
 			assertNotNull(setCookieHeader, "Refresh token cookie should be set");
@@ -240,7 +243,7 @@ class AuthServiceTest {
 			// Then
 			assertTrue(response.getStatusCode().isSameCodeAs(HttpStatus.OK), "Login failed");
 			assertNotNull(response.getBody());
-			assertEquals("dummyAccessToken", response.getBody().getAccessToken(), "Access token mismatch");
+			assertEquals("dummyAccessToken", response.getBody().accessToken(), "Access token mismatch");
 		}
 
 		@Test
@@ -292,7 +295,7 @@ class AuthServiceTest {
 			user.setEmail(email);
 			user.setPassword("OLD_PASSWORD");
 			String jwt = "jwt-token";
-			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(jwtService.extractSubject(jwt)).thenReturn(email);
 			Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 			Mockito.when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
 			// When
@@ -300,8 +303,8 @@ class AuthServiceTest {
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
-			assertTrue(response.getBody().isSuccess());
-			assertEquals("Password recovered successfully.", response.getBody().getMessage());
+			assertTrue(response.getBody().success());
+			assertEquals("Password recovered successfully.", response.getBody().message());
 			Mockito.verify(userRepository).save(user);
 			assertEquals(encodedPassword, user.getPassword());
 		}
@@ -313,7 +316,7 @@ class AuthServiceTest {
 			passwordRecoveryDTO.setPassword(rawPassword);
 			passwordRecoveryDTO.setConfirmPassword(otherPassword);
 			String jwt = "jwt-token";
-			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(jwtService.extractSubject(jwt)).thenReturn(email);
 			// Then + When
 			assertThrows(BadCredentialsException.class, () -> authService.passwordRecovery(jwt, passwordRecoveryDTO));
 		}
@@ -325,7 +328,7 @@ class AuthServiceTest {
 			passwordRecoveryDTO.setPassword(rawPassword);
 			passwordRecoveryDTO.setConfirmPassword(rawPassword);
 			String jwt = "jwt-token";
-			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(jwtService.extractSubject(jwt)).thenReturn(email);
 			Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 			// When + Then
 			assertThrows(UsernameNotFoundException.class, () -> authService.passwordRecovery(jwt, passwordRecoveryDTO));
@@ -340,7 +343,7 @@ class AuthServiceTest {
 			User user = new User();
 			user.setEmail(email);
 			String jwt = "jwt";
-			Mockito.when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+			Mockito.when(jwtService.extractSubject(jwt)).thenReturn(email);
 			Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 			Mockito.when(passwordEncoder.encode(rawPassword)).thenReturn(rawPassword);
 			// When + Then

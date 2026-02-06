@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.model;
+package com.CalisthenicList.CaliList.model.DTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

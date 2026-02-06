@@ -1,8 +1,8 @@
 package com.CalisthenicList.CaliList.filter;
 
 
-import com.CalisthenicList.CaliList.utils.JwtUtils;
-import io.micrometer.common.lang.NonNull;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,17 +20,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+/**
+ * Intercepts incoming requests, validates JWT tokens, and authenticates users if a valid token is present.
+ */
 @Component
 @RequiredArgsConstructor
-//INFO - Intercepts incoming requests, validates JWT tokens, and authenticates users if a valid token is present
 public class AccessTokenAuthFilter extends OncePerRequestFilter {
 	private final Logger logger = Logger.getLogger(AccessTokenAuthFilter.class.getName());
-	private final JwtUtils jwtUtils;
+	private final JwtService jwtService;
 	private final UserDetailsService userDetailsService;
 
 	@Override
-	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-									@NonNull FilterChain filterChain) throws ServletException, IOException {
+	protected void doFilterInternal(@Nullable HttpServletRequest request, @Nullable HttpServletResponse response,
+									@Nullable FilterChain filterChain) throws ServletException, IOException {
 		final String authHeader = request.getHeader("Authorization");
 		final String accessToken;
 		//Parse accessToken from Authorization header
@@ -42,10 +44,10 @@ public class AccessTokenAuthFilter extends OncePerRequestFilter {
 		}
 		//Validate jwt token and authenticate the user if valid
 		try {
-			String accessTokenSubject = jwtUtils.extractSubject(accessToken);
+			String accessTokenSubject = jwtService.extractSubject(accessToken);
 			if(accessTokenSubject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 				UserDetails userDetails = userDetailsService.loadUserByUsername(accessTokenSubject);
-				if(jwtUtils.validateIfJwtSubjectMatchTheUser(accessTokenSubject, userDetails)) {
+				if(jwtService.validateIfJwtSubjectMatchTheUser(accessTokenSubject, userDetails.getUsername())) {
 					UsernamePasswordAuthenticationToken authToken =
 							new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 					authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

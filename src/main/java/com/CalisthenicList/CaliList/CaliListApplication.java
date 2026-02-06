@@ -10,4 +10,7 @@ public class CaliListApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CaliListApplication.class, args);
 	}
+
+//	TODO use h2 database for all tests
 }
+

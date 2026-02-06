@@ -1,4 +1,4 @@
-package com.CalisthenicList.CaliList.model;
+package com.CalisthenicList.CaliList.model.DTO;
 
 import com.CalisthenicList.CaliList.constants.Messages;
 import jakarta.validation.constraints.NotBlank;

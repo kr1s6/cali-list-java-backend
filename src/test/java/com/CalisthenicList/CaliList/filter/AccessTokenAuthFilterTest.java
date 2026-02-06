@@ -1,5 +1,5 @@
 package com.CalisthenicList.CaliList.filter;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class AccessTokenAuthFilterTest {
 	@Mock
-	private JwtUtils jwtUtils;
+	private JwtService jwtService;
 	@Mock
 	private UserDetailsService userDetailsService;
 	@Mock
@@ -40,10 +40,14 @@ public class AccessTokenAuthFilterTest {
 	private final String jwt = "fake-jwt-token";
 	private final String email = "test@example.com";
 
+	private boolean validateIfJwtSubjectMatchTheUser(String jwtSubject, String email) {
+		return jwtService.validateIfJwtSubjectMatchTheUser(jwtSubject, email);
+	}
+
 	@BeforeEach
 	void setup() {
 		SecurityContextHolder.clearContext();
-		filter = new AccessTokenAuthFilter(jwtUtils, userDetailsService);
+		filter = new AccessTokenAuthFilter(jwtService, userDetailsService);
 	}
 
 	@Test
@@ -63,10 +67,10 @@ public class AccessTokenAuthFilterTest {
 	void validJwt_setsAuthentication() throws ServletException, IOException {
 		// Given
 		when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-		when(jwtUtils.extractSubject(anyString())).thenReturn(email);
+		when(jwtService.extractSubject(anyString())).thenReturn(email);
 		UserDetails userDetails = new User(email, "password", Collections.emptyList());
 		when(userDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
-		when(jwtUtils.validateIfJwtSubjectMatchTheUser(email, userDetails)).thenReturn(true);
+		when(validateIfJwtSubjectMatchTheUser(email, userDetails.getUsername())).thenReturn(true);
 		// When
 		filter.doFilterInternal(request, response, filterChain);
 		// Then
@@ -82,10 +86,10 @@ public class AccessTokenAuthFilterTest {
 	void invalidJwt_doesNotAuthenticate() throws ServletException, IOException {
 		//Given
 		when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-		when(jwtUtils.extractSubject(jwt)).thenReturn(email);
+		when(jwtService.extractSubject(jwt)).thenReturn(email);
 		UserDetails userDetails = new User(email, "password", Collections.emptyList());
 		when(userDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
-		when(jwtUtils.validateIfJwtSubjectMatchTheUser(email, userDetails)).thenReturn(false);
+		when(validateIfJwtSubjectMatchTheUser(email, userDetails.getUsername())).thenReturn(false);
 		//When
 		filter.doFilterInternal(request, response, filterChain);
 		//Then
@@ -98,7 +102,7 @@ public class AccessTokenAuthFilterTest {
 	void exceptionInJwtUtils_doesNotBreakFilterChain() throws ServletException, IOException {
 		//Given
 		when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-		when(jwtUtils.extractSubject(jwt)).thenThrow(new RuntimeException("invalid token"));
+		when(jwtService.extractSubject(jwt)).thenThrow(new RuntimeException("invalid token"));
 		//When
 		filter.doFilterInternal(request, response, filterChain);
 		//Then

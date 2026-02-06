@@ -1,10 +1,14 @@
 package com.CalisthenicList.CaliList.service;
 import com.CalisthenicList.CaliList.constants.Messages;
 import com.CalisthenicList.CaliList.model.*;
+import com.CalisthenicList.CaliList.model.DTO.UserBirthdateDTO;
+import com.CalisthenicList.CaliList.model.DTO.CaliStartDateDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserDTO;
+import com.CalisthenicList.CaliList.model.DTO.UserDeleteByIdDTO;
 import com.CalisthenicList.CaliList.repositories.RefreshTokenRepository;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +41,7 @@ class UserServiceTest {
 	@Mock
 	private PasswordEncoder encoder;
 	@Mock
-	private JwtUtils jwtUtils;
+	private JwtService jwtService;
 	@Mock
 	private AccessTokenService accessTokenService;
 	@InjectMocks
@@ -79,7 +83,7 @@ class UserServiceTest {
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
-			assertEquals(Messages.USER_DELETED, response.getBody().getMessage());
+			assertEquals(Messages.USER_DELETED, response.getBody().message());
 			verify(userRepository).delete(user);
 		}
 
@@ -114,12 +118,12 @@ class UserServiceTest {
 	class SetUserBirthdateTest {
 		private final String refreshToken = "dummyToken";
 		private final String userEmail = "test@email.com";
-		private BirthdateDTO birthdateDTO;
+		private UserBirthdateDTO userBirthdateDTO;
 
 		@BeforeEach
 		void setUpBirthdate() {
-			birthdateDTO = new BirthdateDTO();
-			birthdateDTO.setBirthdate(LocalDate.of(2000, 1, 1));
+			userBirthdateDTO = new UserBirthdateDTO();
+			userBirthdateDTO.setBirthdate(LocalDate.of(2000, 1, 1));
 			user.setEmail(userEmail);
 		}
 
@@ -127,19 +131,19 @@ class UserServiceTest {
 		@DisplayName("✅ Happy Case: Set user's birthdate successfully")
 		void givenValidUserAndBirthdate_whenSetUserBirthdate_thenReturnOk() {
 			// Given
-			when(jwtUtils.extractSubject(refreshToken)).thenReturn(userEmail);
+			when(jwtService.extractSubject(refreshToken)).thenReturn(userEmail);
 			when(userRepository.findByEmail(userEmail)).thenReturn(Optional.of(user));
 			when(accessTokenService.generateAccessToken(userEmail)).thenReturn("newAccessToken");
 			when(userRepository.save(user)).thenReturn(user);
 			// When
-			ResponseEntity<ApiResponse<Object>> response = userService.setUserBirthdate(birthdateDTO, refreshToken);
+			ResponseEntity<ApiResponse<Object>> response = userService.setUserBirthdate(userBirthdateDTO, refreshToken);
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
-			assertTrue(response.getBody().isSuccess());
-			assertEquals("Birthday set.", response.getBody().getMessage());
-			assertEquals("newAccessToken", response.getBody().getAccessToken());
-			UserDTO responseUserDTO = (UserDTO) response.getBody().getData();
+			assertTrue(response.getBody().success());
+			assertEquals("Birthday set.", response.getBody().message());
+			assertEquals("newAccessToken", response.getBody().accessToken());
+			UserDTO responseUserDTO = (UserDTO) response.getBody().data();
 			assertEquals(user.getBirthdate(), responseUserDTO.getBirthdate());
 			verify(userRepository).save(user);
 		}
@@ -148,11 +152,11 @@ class UserServiceTest {
 		@DisplayName("❌ Negative Case: User not found")
 		void givenNonExistingUser_whenSetUserBirthdate_thenThrowUsernameNotFoundException() {
 			// Given
-			when(jwtUtils.extractSubject(refreshToken)).thenReturn(userEmail);
+			when(jwtService.extractSubject(refreshToken)).thenReturn(userEmail);
 			when(userRepository.findByEmail(userEmail)).thenReturn(Optional.empty());
 			// When / Then
 			UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,
-					() -> userService.setUserBirthdate(birthdateDTO, refreshToken));
+					() -> userService.setUserBirthdate(userBirthdateDTO, refreshToken));
 			assertEquals(Messages.USER_NOT_FOUND, exception.getMessage());
 			verify(userRepository, never()).save(any());
 		}
@@ -176,7 +180,7 @@ class UserServiceTest {
 		@DisplayName("✅ Happy Case: Set user's cali start date successfully")
 		void givenValidUserAndCaliStartDate_whenSetUserCaliStartDate_thenReturnOk() {
 			// Given
-			when(jwtUtils.extractSubject(refreshToken)).thenReturn(userEmail);
+			when(jwtService.extractSubject(refreshToken)).thenReturn(userEmail);
 			when(userRepository.findByEmail(userEmail)).thenReturn(Optional.of(user));
 			when(accessTokenService.generateAccessToken(userEmail)).thenReturn("newAccessToken");
 			when(userRepository.save(user)).thenReturn(user);
@@ -185,10 +189,10 @@ class UserServiceTest {
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
-			assertTrue(response.getBody().isSuccess());
-			assertEquals("Cali start date set.", response.getBody().getMessage());
-			assertEquals("newAccessToken", response.getBody().getAccessToken());
-			UserDTO responseUserDTO = (UserDTO) response.getBody().getData();
+			assertTrue(response.getBody().success());
+			assertEquals("Cali start date set.", response.getBody().message());
+			assertEquals("newAccessToken", response.getBody().accessToken());
+			UserDTO responseUserDTO = (UserDTO) response.getBody().data();
 			assertEquals(user.getTrainingDuration(), responseUserDTO.getTrainingDuration());
 			verify(userRepository).save(user);
 		}
@@ -197,7 +201,7 @@ class UserServiceTest {
 		@DisplayName("❌ Negative Case: User not found")
 		void givenNonExistingUser_whenSetUserCaliStartDate_thenThrowUsernameNotFoundException() {
 			// Given
-			when(jwtUtils.extractSubject(refreshToken)).thenReturn(userEmail);
+			when(jwtService.extractSubject(refreshToken)).thenReturn(userEmail);
 			when(userRepository.findByEmail(userEmail)).thenReturn(Optional.empty());
 			// When / Then
 			UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,

@@ -5,7 +5,7 @@ import com.CalisthenicList.CaliList.model.ApiResponse;
 import com.CalisthenicList.CaliList.model.User;
 import com.CalisthenicList.CaliList.repositories.UserRepository;
 import com.CalisthenicList.CaliList.service.tokens.AccessTokenService;
-import com.CalisthenicList.CaliList.utils.JwtUtils;
+import com.CalisthenicList.CaliList.service.authorization.JwtService;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -41,7 +41,7 @@ class EmailServiceTest {
 	@Mock
 	private AccessTokenService accessTokenService;
 	@Mock
-	private JwtUtils jwtUtils;
+	private JwtService jwtUtils;
 	@InjectMocks
 	private EmailService emailService;
 
@@ -112,6 +112,10 @@ class EmailServiceTest {
 			return emailService.verifyEmail(jwtToken);
 		}
 
+		private boolean validateIfJwtSubjectMatchTheUser(String jwtSubject, String email) {
+			return jwtUtils.validateIfJwtSubjectMatchTheUser(jwtSubject, email);
+		}
+
 		@BeforeEach
 		void initEach() {
 			testUser = new User("testUser", userEmail, "encodedPassword");
@@ -125,13 +129,13 @@ class EmailServiceTest {
 			// Given
 			when(jwtUtils.extractSubject(jwtToken)).thenReturn(userEmail);
 			when(findByEmail(userEmail)).thenReturn(Optional.of(testUser));
-			when(jwtUtils.validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
+			when(validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
 			// When
 			ResponseEntity<ApiResponse<Object>> response = verifyEmail();
 			// Then
 			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode(), "Should return ACCEPTED");
 			Assertions.assertNotNull(response.getBody());
-			assertEquals(Messages.EMAIL_VERIFICATION_SUCCESS, response.getBody().getMessage(), "Wrong success message");
+			assertEquals(Messages.EMAIL_VERIFICATION_SUCCESS, response.getBody().message(), "Wrong success message");
 			assertTrue(testUser.isEmailVerified(), "User email should be marked as verified");
 			verify(userRepository).save(testUser);
 		}
@@ -153,7 +157,7 @@ class EmailServiceTest {
 			testUser.setEmailVerified(true);
 			when(jwtUtils.extractSubject(jwtToken)).thenReturn(userEmail);
 			when(findByEmail(userEmail)).thenReturn(Optional.of(testUser));
-			when(jwtUtils.validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
+			when(validateIfJwtSubjectMatchTheUser(userEmail, testUser.getEmail())).thenReturn(true);
 			// When & Then
 			IllegalStateException ex = assertThrows(IllegalStateException.class, this::verifyEmail);
 			assertEquals(Messages.EMAIL_ALREADY_VERIFIED, ex.getMessage());
